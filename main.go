@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Task struct {
@@ -15,8 +16,9 @@ type Task struct {
 }
 
 type TaskResponse struct {
-	TaskID int
-	Task   Task
+	TaskID     int
+	Task       Task
+	TaskStatus any
 }
 
 type TaskStatus struct {
@@ -33,7 +35,6 @@ var tasks []TaskResponse
 
 func main() {
 	http.HandleFunc("/tasks", taskHandler)
-	http.HandleFunc("/task/{taskID}", getTaskStatus)
 	startServer()
 }
 
@@ -70,43 +71,26 @@ func postTask(w http.ResponseWriter, r *http.Request) {
 	taskResponse := TaskResponse{TaskID: taskID, Task: task}
 	tasks = append(tasks, taskResponse)
 
-	//go getTaskStatus(task)
+	go executeTask(taskID, task)
+
 	fmt.Fprintf(w, "new task ID: ")
 	json.NewEncoder(w).Encode(taskID)
 }
 
-func getTask(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(tasks)
-}
-
-func getTaskStatus(w http.ResponseWriter, r *http.Request) {
-	taskID := r.URL.Query().Get("taskID")
-
-	var task TaskResponse
-
-	for _, t := range tasks {
-		if fmt.Sprintf("%d", t.TaskID) == taskID {
-			task = t
-			break
-		}
+func executeTask(taskID int, task Task) {
+	if taskID == 0 {
+		log.Println("incorrect task id")
 	}
 
-	if task.TaskID == 0 {
-		http.Error(w, "task not found", http.StatusNotFound)
-		return
-	}
-
-	method := task.Task.Method
-	resp, err := http.Get(task.Task.Url)
+	resp, err := http.Get(task.Url)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		log.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Fatal(err)
 	}
 
 	headers := make(map[string]string)
@@ -126,22 +110,37 @@ func getTaskStatus(w http.ResponseWriter, r *http.Request) {
 		status = "new"
 	}
 
-	fmt.Println(status)
-
 	taskStatus := TaskStatus{
-		Id:             task.TaskID,
+		Id:             taskID,
 		Status:         status,
 		HttpStatusCode: fmt.Sprintf("%d", resp.StatusCode),
 		Headers:        headers,
 		Length:         fmt.Sprintf("%d", len(body)),
 	}
+	fmt.Println(status)
 
-	jsonResp, err := json.Marshal(taskStatus)
+	for i, t := range tasks {
+		if t.TaskID == taskID {
+			tasks[i].TaskStatus = taskStatus
+			break
+		}
+	}
+}
+
+func getTaskStatus(w http.ResponseWriter, r *http.Request) {
+	taskIDStr := r.URL.Query().Get("taskID")
+	taskID, err := strconv.Atoi(taskIDStr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonResp)
+	for _, t := range tasks {
+		if t.TaskID == taskID {
+			json.NewEncoder(w).Encode(t.TaskStatus)
+			return
+		}
+	}
+
+	http.Error(w, "Task not found", http.StatusNotFound)
 }
