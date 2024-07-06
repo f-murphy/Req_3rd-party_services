@@ -27,6 +27,6 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 
 	go ExecuteTask(taskID, task)
 
-	fmt.Fprintf(w, "new task ID: ")
 	json.NewEncoder(w).Encode(taskID)
+	fmt.Fprintf(w, "new task ID: ")
 }
