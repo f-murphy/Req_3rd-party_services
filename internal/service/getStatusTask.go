@@ -21,5 +21,5 @@ func GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	http.Error(w, "Task not found", http.StatusNotFound)
+	http.Error(w, "Invalid task ID", http.StatusBadRequest)
 }
