@@ -9,7 +9,7 @@ import (
 
 func StartServer() {
 	fmt.Println("Listening on port 8080")
-	http.HandleFunc("/tasks", service.TaskHandler)
+	http.HandleFunc("/tasks", service.RouteRedirection)
 	err := http.ListenAndServe("localhost:8080", nil)
 	if err != nil {
 		log.Fatal(err)

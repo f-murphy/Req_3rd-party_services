@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-func TaskHandler(w http.ResponseWriter, r *http.Request) {
+func RouteRedirection(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		GetTaskStatus(w, r)
