@@ -2,7 +2,6 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"req3rdPartyServices/internal/modules"
 )
@@ -25,8 +24,7 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 	taskResponse := modules.TaskResponse{TaskID: taskID, Task: task}
 	tasks = append(tasks, taskResponse)
 
-	go ExecuteTask(taskID, task)
+	go redirectionTask(taskID, task)
 
 	json.NewEncoder(w).Encode(taskID)
-	fmt.Fprintf(w, "new task ID: ")
 }

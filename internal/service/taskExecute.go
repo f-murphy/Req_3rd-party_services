@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"req3rdPartyServices/internal/modules"
 )
 
-func ExecuteTask(taskID int, task modules.Task) {
+func redirectionTask(taskID int, task modules.Task) {
 	if taskID == 0 {
 		log.Println("incorrect task id")
 	}
@@ -22,8 +22,8 @@ func ExecuteTask(taskID int, task modules.Task) {
 		executePostTask(taskID, task)
 	case "PUT":
 		executePutTask(taskID, task)
-	case "DELETE":
-		executeDeleteTask(taskID, task)
+	default:
+		log.Println("incorrect task method:", task.Method)
 	}
 }
 
@@ -32,50 +32,18 @@ func executeGetTask(taskID int, task modules.Task) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
 
-	body, err := ioutil.ReadAll(resp.Body)
+		}
+	}(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	headers := make(map[string]string)
-	for k, v := range resp.Header {
-		headers[k] = v[0]
-	}
-
-	var status string
-	switch resp.StatusCode {
-	case http.StatusOK:
-		status = "done"
-	case http.StatusAccepted:
-		status = "in process"
-	case http.StatusMethodNotAllowed:
-		status = "incorrect method"
-	case http.StatusInternalServerError:
-		status = "error"
-	default:
-		status = "new"
-	}
-
-	taskStatus := modules.TaskStatus{
-		Id:             taskID,
-		Status:         status,
-		HttpStatusCode: fmt.Sprintf("%d", resp.StatusCode),
-		Headers:        headers,
-		Length:         fmt.Sprintf("%d", len(body)),
-	}
-
-	for i, t := range tasks {
-		if t.TaskID == taskID {
-			tasks[i].TaskStatus = taskStatus
-			break
-		}
-	}
+	executeTask(taskID, task, "GET", body)
 }
 
 func executePostTask(taskID int, task modules.Task) {
@@ -84,9 +52,22 @@ func executePostTask(taskID int, task modules.Task) {
 		log.Fatal(err)
 	}
 
-	req, err := http.NewRequest("POST", task.Url, bytes.NewBuffer(jsonTask))
+	executeTask(taskID, task, "POST", jsonTask)
+}
+
+func executePutTask(taskID int, task modules.Task) {
+	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	executeTask(taskID, task, "PUT", jsonTask)
+}
+
+func executeTask(taskID int, task modules.Task, method string, body []byte) {
+	req, err := http.NewRequest(method, task.Url, bytes.NewBuffer(body))
+	if err != nil {
+		log.Println(err)
 	}
 
 	req.Header.Set("Content-Type", task.Headers["Content-Type"])
@@ -95,11 +76,11 @@ func executePostTask(taskID int, task modules.Task) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 	}()
 
@@ -127,115 +108,10 @@ func executePostTask(taskID int, task modules.Task) {
 		Status:         status,
 		HttpStatusCode: fmt.Sprintf("%d", resp.StatusCode),
 		Headers:        headers,
-		Length:         fmt.Sprintf("%d", len(jsonTask)),
 	}
 
-	for i, t := range tasks {
-		if t.TaskID == taskID {
-			tasks[i].TaskStatus = taskStatus
-			break
-		}
-	}
-}
-
-func executePutTask(taskID int, task modules.Task) {
-	jsonTask, err := json.Marshal(task)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	req, err := http.NewRequest("PUT", task.Url, bytes.NewBuffer(jsonTask))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	req.Header.Set("Content-Type", task.Headers["Content-Type"])
-	req.Header.Set("Authorization", task.Headers["Authorization"])
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	headers := make(map[string]string)
-	for k, v := range resp.Header {
-		headers[k] = v[0]
-	}
-
-	var status string
-	switch resp.StatusCode {
-	case http.StatusOK:
-		status = "done"
-	case http.StatusAccepted:
-		status = "in process"
-	case http.StatusMethodNotAllowed:
-		status = "incorrect method"
-	case http.StatusInternalServerError:
-		status = "error"
-	}
-
-	taskStatus := modules.TaskStatus{
-		Id:             taskID,
-		Status:         status,
-		HttpStatusCode: fmt.Sprintf("%d", resp.StatusCode),
-		Headers:        headers,
-		Length:         fmt.Sprintf("%d", len(jsonTask)),
-	}
-
-	for i, t := range tasks {
-		if t.TaskID == taskID {
-			tasks[i].TaskStatus = taskStatus
-			break
-		}
-	}
-}
-
-func executeDeleteTask(taskID int, task modules.Task) {
-	req, err := http.NewRequest("DELETE", task.Url, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Set("Authorization", task.Headers["Authorization"])
-	req.Header.Set("Content-Type", task.Headers["Content-Type"])
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	headers := make(map[string]string)
-	for k, v := range resp.Header {
-		headers[k] = v[0]
-	}
-
-	var status string
-	switch resp.StatusCode {
-	case http.StatusOK:
-		status = "done"
-	case http.StatusAccepted:
-		status = "in process"
-	case http.StatusMethodNotAllowed:
-		status = "incorrect method"
-	case http.StatusInternalServerError:
-		status = "error"
-	}
-
-	taskStatus := modules.TaskStatus{
-		Id:             taskID,
-		Status:         status,
-		HttpStatusCode: fmt.Sprintf("%d", resp.StatusCode),
-		Headers:        headers,
+	if body != nil {
+		taskStatus.Length = fmt.Sprintf("%d", len(body))
 	}
 
 	for i, t := range tasks {
