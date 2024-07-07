@@ -11,24 +11,24 @@ import (
 	"strings"
 )
 
-func redirectionTask(taskID int, task modules.Task, w http.ResponseWriter, r *http.Request) {
+func redirectionTask(taskID int, task modules.Task) {
 	if taskID == 0 {
 		log.Println("incorrect task id")
 	}
 
 	switch strings.ToUpper(task.Method) {
 	case "GET":
-		executeGetTask(taskID, task, w, r)
+		executeGetTask(taskID, task)
 	case "POST":
-		executePostTask(taskID, task, w, r)
+		executePostTask(taskID, task)
 	case "PUT":
-		executePutTask(taskID, task, w, r)
+		executePutTask(taskID, task)
 	case "DELETE":
-		executeDeleteTask(taskID, task, w, r)
+		executeDeleteTask(taskID, task)
 	}
 }
 
-func executeGetTask(taskID int, task modules.Task, w http.ResponseWriter, r *http.Request) {
+func executeGetTask(taskID int, task modules.Task) {
 	resp, err := http.Get(task.Url)
 	if err != nil {
 		log.Fatal(err)
@@ -44,37 +44,36 @@ func executeGetTask(taskID int, task modules.Task, w http.ResponseWriter, r *htt
 		log.Fatal(err)
 	}
 
-	executeTask(taskID, task, "GET", body, w, r)
+	executeTask(taskID, task, "GET", body)
 }
 
-func executePostTask(taskID int, task modules.Task, w http.ResponseWriter, r *http.Request) {
+func executePostTask(taskID int, task modules.Task) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	executeTask(taskID, task, "POST", jsonTask, w, r)
+	executeTask(taskID, task, "POST", jsonTask)
 }
 
-func executePutTask(taskID int, task modules.Task, w http.ResponseWriter, r *http.Request) {
+func executePutTask(taskID int, task modules.Task) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	executeTask(taskID, task, "PUT", jsonTask, w, r)
+	executeTask(taskID, task, "PUT", jsonTask)
 }
 
-func executeDeleteTask(taskID int, task modules.Task, w http.ResponseWriter, r *http.Request) {
+func executeDeleteTask(taskID int, task modules.Task) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
 	}
-	executeTask(taskID, task, "DELETE", jsonTask, w, r)
+	executeTask(taskID, task, "DELETE", jsonTask)
 }
 
-func executeTask(taskID int, task modules.Task, method string, body []byte, w http.ResponseWriter, r *http.Request) {
-
+func executeTask(taskID int, task modules.Task, method string, body []byte) {
 	req, err := http.NewRequest(method, task.Url, bytes.NewBuffer(body))
 	if err != nil {
 		log.Println(err)

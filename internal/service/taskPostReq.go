@@ -39,7 +39,7 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 	taskResponse := modules.TaskResponse{TaskID: taskID, Task: task}
 	tasks = append(tasks, taskResponse)
 
-	go redirectionTask(taskID, task, w, r)
+	go redirectionTask(taskID, task)
 
 	json.NewEncoder(w).Encode(taskID)
 }
