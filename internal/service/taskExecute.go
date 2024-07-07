@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"req3rdPartyServices/internal/modules"
+	"strings"
 )
 
 func redirectionTask(taskID int, task modules.Task) {
@@ -15,15 +16,15 @@ func redirectionTask(taskID int, task modules.Task) {
 		log.Println("incorrect task id")
 	}
 
-	switch task.Method {
+	switch strings.ToUpper(task.Method) {
 	case "GET":
 		executeGetTask(taskID, task)
 	case "POST":
 		executePostTask(taskID, task)
 	case "PUT":
 		executePutTask(taskID, task)
-	default:
-		log.Println("incorrect task method:", task.Method)
+	case "DELETE":
+		executeDeleteTask(taskID, task)
 	}
 }
 
@@ -35,7 +36,7 @@ func executeGetTask(taskID int, task modules.Task) {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-
+			log.Fatal(err)
 		}
 	}(resp.Body)
 	body, err := io.ReadAll(resp.Body)
@@ -62,6 +63,14 @@ func executePutTask(taskID int, task modules.Task) {
 	}
 
 	executeTask(taskID, task, "PUT", jsonTask)
+}
+
+func executeDeleteTask(taskID int, task modules.Task) {
+	jsonTask, err := json.Marshal(task)
+	if err != nil {
+		log.Fatal(err)
+	}
+	executeTask(taskID, task, "DELETE", jsonTask)
 }
 
 func executeTask(taskID int, task modules.Task, method string, body []byte) {
