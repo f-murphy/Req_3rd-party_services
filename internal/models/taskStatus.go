@@ -1,4 +1,4 @@
-package modules
+package models
 
 type TaskStatus struct {
 	Id             int
