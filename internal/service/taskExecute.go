@@ -7,11 +7,11 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"req3rdPartyServices/internal/modules"
+	"req3rdPartyServices/internal/models"
 	"strings"
 )
 
-func redirectionTask(taskID int, task modules.Task) {
+func redirectionTask(taskID int, task models.Task) {
 	if taskID == 0 {
 		log.Println("incorrect task id")
 	}
@@ -28,7 +28,7 @@ func redirectionTask(taskID int, task modules.Task) {
 	}
 }
 
-func executeGetTask(taskID int, task modules.Task) {
+func executeGetTask(taskID int, task models.Task) {
 	resp, err := http.Get(task.Url)
 	if err != nil {
 		log.Fatal(err)
@@ -47,7 +47,7 @@ func executeGetTask(taskID int, task modules.Task) {
 	executeTask(taskID, task, "GET", body)
 }
 
-func executePostTask(taskID int, task modules.Task) {
+func executePostTask(taskID int, task models.Task) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
@@ -56,7 +56,7 @@ func executePostTask(taskID int, task modules.Task) {
 	executeTask(taskID, task, "POST", jsonTask)
 }
 
-func executePutTask(taskID int, task modules.Task) {
+func executePutTask(taskID int, task models.Task) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
@@ -65,7 +65,7 @@ func executePutTask(taskID int, task modules.Task) {
 	executeTask(taskID, task, "PUT", jsonTask)
 }
 
-func executeDeleteTask(taskID int, task modules.Task) {
+func executeDeleteTask(taskID int, task models.Task) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
@@ -73,7 +73,7 @@ func executeDeleteTask(taskID int, task modules.Task) {
 	executeTask(taskID, task, "DELETE", jsonTask)
 }
 
-func executeTask(taskID int, task modules.Task, method string, body []byte) {
+func executeTask(taskID int, task models.Task, method string, body []byte) {
 	req, err := http.NewRequest(method, task.Url, bytes.NewBuffer(body))
 	if err != nil {
 		log.Println(err)
@@ -112,7 +112,7 @@ func executeTask(taskID int, task modules.Task, method string, body []byte) {
 		status = "new"
 	}
 
-	taskStatus := modules.TaskStatus{
+	taskStatus := models.TaskStatus{
 		Id:             taskID,
 		Status:         status,
 		HttpStatusCode: fmt.Sprintf("%d", resp.StatusCode),

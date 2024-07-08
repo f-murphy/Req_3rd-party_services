@@ -3,16 +3,16 @@ package service
 import (
 	"encoding/json"
 	"net/http"
-	"req3rdPartyServices/internal/modules"
+	"req3rdPartyServices/internal/models"
 	"strings"
 )
 
 var lastTaskID int = 0
 
-var tasks []modules.TaskResponse
+var tasks []models.TaskResponse
 
 func PostTask(w http.ResponseWriter, r *http.Request) {
-	var task modules.Task
+	var task models.Task
 
 	err := json.NewDecoder(r.Body).Decode(&task)
 	if (strings.ToUpper(task.Method) == "POST" || strings.ToUpper(task.Method) == "PUT" || strings.ToUpper(task.Method) == "DELETE") && task.Body == nil {
@@ -36,7 +36,7 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 	taskID := lastTaskID + 1
 	lastTaskID = taskID
 
-	taskResponse := modules.TaskResponse{TaskID: taskID, Task: task}
+	taskResponse := models.TaskResponse{TaskID: taskID, Task: task}
 	tasks = append(tasks, taskResponse)
 
 	go redirectionTask(taskID, task)
