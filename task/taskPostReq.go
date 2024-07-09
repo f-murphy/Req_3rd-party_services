@@ -1,15 +1,16 @@
-package service
+package task
 
 import (
 	"encoding/json"
 	"net/http"
-	"req3rdPartyServices/internal/models"
+	"req3rdPartyServices/models"
 	"strings"
+	"sync"
 )
 
 var lastTaskID int = 0
-
-var tasks []models.TaskResponse
+var mutex = &sync.Mutex{}
+var tasks = make(map[int]models.TaskResponse)
 
 func PostTask(w http.ResponseWriter, r *http.Request) {
 	var task models.Task
@@ -33,13 +34,14 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mutex.Lock()
 	taskID := lastTaskID + 1
 	lastTaskID = taskID
+	mutex.Unlock()
 
 	taskResponse := models.TaskResponse{TaskID: taskID, Task: task}
-	tasks = append(tasks, taskResponse)
-
-	go redirectionTask(taskID, task)
+	tasks[taskID] = taskResponse
+	go redirectionTask(taskResponse)
 
 	json.NewEncoder(w).Encode(taskID)
 }
