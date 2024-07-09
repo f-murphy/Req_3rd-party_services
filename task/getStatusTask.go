@@ -1,4 +1,4 @@
-package service
+package task
 
 import (
 	"encoding/json"
@@ -14,12 +14,9 @@ func GetTaskStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, t := range tasks {
-		if t.TaskID == taskID {
-			json.NewEncoder(w).Encode(t.TaskStatus)
-			return
-		}
+	if val, ok := tasks[taskID]; ok {
+		json.NewEncoder(w).Encode(val.TaskStatus)
+	} else {
+		http.Error(w, "non-existent task", http.StatusBadRequest)
 	}
-
-	http.Error(w, "Invalid task ID", http.StatusBadRequest)
 }
