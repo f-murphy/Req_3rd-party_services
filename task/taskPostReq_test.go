@@ -3,15 +3,16 @@ package task
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"req3rdPartyServices/internal/modules"
+	"req3rdPartyServices/internal/models"
 	"testing"
 )
 
 func TestTaskPostReq(t *testing.T) {
 	// Arrange
-	task := modules.Task{
+	task := models.Task{
 		Method: "POST",
 		Url:    "https://api.vatcomply.com/rates?base=GBP",
 		Headers: map[string]string{
@@ -34,6 +35,7 @@ func TestTaskPostReq(t *testing.T) {
 
 	// Act
 	PostTask(w, req)
+	fmt.Println(err)
 
 	// Assert
 	if w.Code != http.StatusOK {
