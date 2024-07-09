@@ -1,4 +1,4 @@
-package service
+package task
 
 import (
 	"bytes"
@@ -7,29 +7,29 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"req3rdPartyServices/internal/modules"
+	"req3rdPartyServices/models"
 	"strings"
 )
 
-func redirectionTask(taskID int, task modules.Task) {
-	if taskID == 0 {
+func redirectionTask(task models.TaskResponse) {
+	if task.TaskID == 0 {
 		log.Println("incorrect task id")
 	}
 
-	switch strings.ToUpper(task.Method) {
+	switch strings.ToUpper(task.Task.Method) {
 	case "GET":
-		executeGetTask(taskID, task)
+		executeGetTask(task)
 	case "POST":
-		executePostTask(taskID, task)
+		executePostTask(task)
 	case "PUT":
-		executePutTask(taskID, task)
+		executePutTask(task)
 	case "DELETE":
-		executeDeleteTask(taskID, task)
+		executeDeleteTask(task)
 	}
 }
 
-func executeGetTask(taskID int, task modules.Task) {
-	resp, err := http.Get(task.Url)
+func executeGetTask(task models.TaskResponse) {
+	resp, err := http.Get(task.Task.Url)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,43 +44,40 @@ func executeGetTask(taskID int, task modules.Task) {
 		log.Fatal(err)
 	}
 
-	executeTask(taskID, task, "GET", body)
+	executeTask(task, "GET", body)
 }
 
-func executePostTask(taskID int, task modules.Task) {
+func executePostTask(task models.TaskResponse) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	executeTask(taskID, task, "POST", jsonTask)
+	executeTask(task, "POST", jsonTask)
 }
 
-func executePutTask(taskID int, task modules.Task) {
+func executePutTask(task models.TaskResponse) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	executeTask(taskID, task, "PUT", jsonTask)
+	executeTask(task, "PUT", jsonTask)
 }
 
-func executeDeleteTask(taskID int, task modules.Task) {
+func executeDeleteTask(task models.TaskResponse) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
 	}
-	executeTask(taskID, task, "DELETE", jsonTask)
+	executeTask(task, "DELETE", jsonTask)
 }
 
-func executeTask(taskID int, task modules.Task, method string, body []byte) {
-	req, err := http.NewRequest(method, task.Url, bytes.NewBuffer(body))
+func executeTask(task models.TaskResponse, method string, body []byte) {
+	req, err := http.NewRequest(method, task.Task.Url, bytes.NewBuffer(body))
 	if err != nil {
 		log.Println(err)
 	}
-
-	req.Header.Set("Content-Type", task.Headers["Content-Type"])
-	req.Header.Set("Authorization", task.Headers["Authorization"])
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -112,8 +109,8 @@ func executeTask(taskID int, task modules.Task, method string, body []byte) {
 		status = "new"
 	}
 
-	taskStatus := modules.TaskStatus{
-		Id:             taskID,
+	taskStatus := models.TaskStatus{
+		Id:             task.TaskID,
 		Status:         status,
 		HttpStatusCode: fmt.Sprintf("%d", resp.StatusCode),
 		Headers:        headers,
@@ -123,10 +120,13 @@ func executeTask(taskID int, task modules.Task, method string, body []byte) {
 		taskStatus.Length = fmt.Sprintf("%d", len(body))
 	}
 
-	for i, t := range tasks {
-		if t.TaskID == taskID {
-			tasks[i].TaskStatus = taskStatus
-			break
-		}
+	taskResp, ok := tasks[task.TaskID]
+	if !ok {
+		log.Println("Task not found in tasks map")
+		return
 	}
+
+	taskResp.TaskStatus = taskStatus
+
+	tasks[task.TaskID] = taskResp
 }

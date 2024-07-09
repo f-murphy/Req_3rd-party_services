@@ -1,18 +1,19 @@
-package service
+package task
 
 import (
 	"encoding/json"
 	"net/http"
-	"req3rdPartyServices/internal/modules"
+	"req3rdPartyServices/models"
 	"strings"
+	"sync"
 )
 
 var lastTaskID int = 0
-
-var tasks []modules.TaskResponse
+var mutex = &sync.Mutex{}
+var tasks = make(map[int]models.TaskResponse)
 
 func PostTask(w http.ResponseWriter, r *http.Request) {
-	var task modules.Task
+	var task models.Task
 
 	err := json.NewDecoder(r.Body).Decode(&task)
 	if (strings.ToUpper(task.Method) == "POST" || strings.ToUpper(task.Method) == "PUT" || strings.ToUpper(task.Method) == "DELETE") && task.Body == nil {
@@ -33,13 +34,14 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mutex.Lock()
 	taskID := lastTaskID + 1
 	lastTaskID = taskID
+	mutex.Unlock()
 
-	taskResponse := modules.TaskResponse{TaskID: taskID, Task: task}
-	tasks = append(tasks, taskResponse)
-
-	go redirectionTask(taskID, task)
+	taskResponse := models.TaskResponse{TaskID: taskID, Task: task}
+	tasks[taskID] = taskResponse
+	go redirectionTask(taskResponse)
 
 	json.NewEncoder(w).Encode(taskID)
 }
