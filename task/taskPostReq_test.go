@@ -48,3 +48,35 @@ func TestTaskPostReq(t *testing.T) {
 	}
 
 }
+
+func TestTaskPostReq_NoBody(t *testing.T) {
+	// Arrange
+	task := models.Task{
+		Method: "POST",
+		Url:    "https://api.vatcomply.com/rates?base=GBP",
+		Headers: map[string]string{
+			"Authorization": "Basic ...",
+			"Content-Type":  "application/json",
+		},
+	}
+
+	jsonTask, err := json.Marshal(task)
+	if err != nil {
+		t.Error(err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, task.Url, bytes.NewBuffer(jsonTask))
+	if err != nil {
+		t.Error(err)
+	}
+
+	w := httptest.NewRecorder()
+
+	// Act
+	PostTask(w, req)
+
+	// Assert
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status code 400, but got %d", w.Code)
+	}
+}
