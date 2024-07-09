@@ -3,10 +3,9 @@ package task
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"req3rdPartyServices/internal/models"
+	"req3rdPartyServices/models"
 	"testing"
 )
 
@@ -19,6 +18,7 @@ func TestTaskPostReq(t *testing.T) {
 			"Authorization": "Basic ...",
 			"Content-Type":  "application/json",
 		},
+		Body: map[string]string{},
 	}
 
 	jsonTask, err := json.Marshal(task)
@@ -26,7 +26,7 @@ func TestTaskPostReq(t *testing.T) {
 		t.Error(err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, "https://api.vatcomply.com/rates", bytes.NewBuffer(jsonTask))
+	req, err := http.NewRequest(http.MethodPost, task.Url, bytes.NewBuffer(jsonTask))
 	if err != nil {
 		t.Error(err)
 	}
@@ -35,7 +35,6 @@ func TestTaskPostReq(t *testing.T) {
 
 	// Act
 	PostTask(w, req)
-	fmt.Println(err)
 
 	// Assert
 	if w.Code != http.StatusOK {
