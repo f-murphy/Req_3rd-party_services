@@ -18,7 +18,9 @@ func TestTaskPostReq(t *testing.T) {
 			"Authorization": "Basic ...",
 			"Content-Type":  "application/json",
 		},
-		Body: map[string]string{},
+		Body: map[string]string{
+			"asd": "asd",
+		},
 	}
 
 	jsonTask, err := json.Marshal(task)
@@ -46,11 +48,9 @@ func TestTaskPostReq(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected taskID in response, but got error %s", err.Error())
 	}
-
 }
 
 func TestTaskPostReq_NoBody(t *testing.T) {
-	// Arrange
 	task := models.Task{
 		Method: "POST",
 		Url:    "https://api.vatcomply.com/rates?base=GBP",
@@ -58,6 +58,7 @@ func TestTaskPostReq_NoBody(t *testing.T) {
 			"Authorization": "Basic ...",
 			"Content-Type":  "application/json",
 		},
+		Body: map[string]string{},
 	}
 
 	jsonTask, err := json.Marshal(task)
@@ -71,12 +72,13 @@ func TestTaskPostReq_NoBody(t *testing.T) {
 	}
 
 	w := httptest.NewRecorder()
-
-	// Act
 	PostTask(w, req)
 
-	// Assert
 	if w.Code != http.StatusBadRequest {
-		t.Errorf("expected status code 400, but got %d", w.Code)
+		t.Errorf("expected status code %d, got %d", http.StatusBadRequest, w.Code)
+	}
+
+	if w.Body.String() != "No body for request\n" {
+		t.Errorf("expected error message 'No body for request', got '%s'", w.Body.String())
 	}
 }
