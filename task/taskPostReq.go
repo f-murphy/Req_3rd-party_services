@@ -16,7 +16,7 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 	var task models.Task
 
 	err := json.NewDecoder(r.Body).Decode(&task)
-	if (strings.ToUpper(task.Method) == "POST" || strings.ToUpper(task.Method) == "PUT" || strings.ToUpper(task.Method) == "DELETE") && task.Body == nil {
+	if (strings.ToUpper(task.Method) == "POST" || strings.ToUpper(task.Method) == "PUT" || strings.ToUpper(task.Method) == "DELETE") && len(task.Body) == 0 {
 		http.Error(w, "No body for request", http.StatusBadRequest)
 		return
 	}
