@@ -50,7 +50,7 @@ func TestTaskPostReq(t *testing.T) {
 	}
 }
 
-func TestTaskPostReq_NoBody(t *testing.T) {
+func TestTaskPostReq_noBody(t *testing.T) {
 	task := models.Task{
 		Method: "POST",
 		Url:    "https://api.vatcomply.com/rates?base=GBP",

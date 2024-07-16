@@ -12,10 +12,6 @@ import (
 )
 
 func redirectionTask(task models.TaskResponse) {
-	if task.TaskID == 0 {
-		log.Println("incorrect task id")
-	}
-
 	switch strings.ToUpper(task.Task.Method) {
 	case "GET":
 		executeGetTask(task)
