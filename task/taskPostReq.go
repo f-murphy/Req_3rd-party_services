@@ -10,13 +10,13 @@ import (
 
 var lastTaskID int = 0
 var mutex = &sync.Mutex{}
-var tasks = make(map[int]models.TaskResponse)
+var tasks = make(map[int]models.TaskRequest)
 
 func PostTask(w http.ResponseWriter, r *http.Request) {
 	var task models.Task
 
 	err := json.NewDecoder(r.Body).Decode(&task)
-	if (strings.ToUpper(task.Method) == "POST" || strings.ToUpper(task.Method) == "PUT" || strings.ToUpper(task.Method) == "DELETE") && task.Body == nil {
+	if (strings.ToUpper(task.Method) == "POST" || strings.ToUpper(task.Method) == "PUT" || strings.ToUpper(task.Method) == "DELETE") && len(task.Body) == 0 {
 		http.Error(w, "No body for request", http.StatusBadRequest)
 		return
 	}
@@ -39,7 +39,7 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 	lastTaskID = taskID
 	mutex.Unlock()
 
-	taskResponse := models.TaskResponse{TaskID: taskID, Task: task}
+	taskResponse := models.TaskRequest{TaskID: taskID, Task: task}
 	tasks[taskID] = taskResponse
 	go redirectionTask(taskResponse)
 

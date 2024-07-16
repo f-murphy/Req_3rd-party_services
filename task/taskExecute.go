@@ -11,11 +11,7 @@ import (
 	"strings"
 )
 
-func redirectionTask(task models.TaskResponse) {
-	if task.TaskID == 0 {
-		log.Println("incorrect task id")
-	}
-
+func redirectionTask(task models.TaskRequest) {
 	switch strings.ToUpper(task.Task.Method) {
 	case "GET":
 		executeGetTask(task)
@@ -28,7 +24,7 @@ func redirectionTask(task models.TaskResponse) {
 	}
 }
 
-func executeGetTask(task models.TaskResponse) {
+func executeGetTask(task models.TaskRequest) {
 	resp, err := http.Get(task.Task.Url)
 	if err != nil {
 		log.Fatal(err)
@@ -47,7 +43,7 @@ func executeGetTask(task models.TaskResponse) {
 	executeTask(task, "GET", body)
 }
 
-func executePostTask(task models.TaskResponse) {
+func executePostTask(task models.TaskRequest) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
@@ -56,7 +52,7 @@ func executePostTask(task models.TaskResponse) {
 	executeTask(task, "POST", jsonTask)
 }
 
-func executePutTask(task models.TaskResponse) {
+func executePutTask(task models.TaskRequest) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
@@ -65,7 +61,7 @@ func executePutTask(task models.TaskResponse) {
 	executeTask(task, "PUT", jsonTask)
 }
 
-func executeDeleteTask(task models.TaskResponse) {
+func executeDeleteTask(task models.TaskRequest) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
@@ -73,7 +69,7 @@ func executeDeleteTask(task models.TaskResponse) {
 	executeTask(task, "DELETE", jsonTask)
 }
 
-func executeTask(task models.TaskResponse, method string, body []byte) {
+func executeTask(task models.TaskRequest, method string, body []byte) {
 	req, err := http.NewRequest(method, task.Task.Url, bytes.NewBuffer(body))
 	if err != nil {
 		log.Println(err)
