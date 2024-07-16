@@ -10,7 +10,7 @@ import (
 
 var lastTaskID int = 0
 var mutex = &sync.Mutex{}
-var tasks = make(map[int]models.TaskResponse)
+var tasks = make(map[int]models.TaskRequest)
 
 func PostTask(w http.ResponseWriter, r *http.Request) {
 	var task models.Task
@@ -39,7 +39,7 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 	lastTaskID = taskID
 	mutex.Unlock()
 
-	taskResponse := models.TaskResponse{TaskID: taskID, Task: task}
+	taskResponse := models.TaskRequest{TaskID: taskID, Task: task}
 	tasks[taskID] = taskResponse
 	go redirectionTask(taskResponse)
 
