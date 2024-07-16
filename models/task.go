@@ -7,7 +7,7 @@ type Task struct {
 	Body    map[string]string
 }
 
-type TaskResponse struct {
+type TaskRequest struct {
 	TaskID     int
 	Task       Task
 	TaskStatus any
