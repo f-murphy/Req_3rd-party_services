@@ -1,10 +1,9 @@
 package task
 
 import (
-	"encoding/json"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"req3rdPartyServices/models"
-	"strings"
 	"sync"
 )
 
@@ -12,25 +11,10 @@ var lastTaskID int = 0
 var mutex = &sync.Mutex{}
 var tasks = make(map[int]models.TaskRequest)
 
-func PostTask(w http.ResponseWriter, r *http.Request) {
+func PostTask(c *gin.Context) {
 	var task models.Task
 
-	err := json.NewDecoder(r.Body).Decode(&task)
-	if (strings.ToUpper(task.Method) == "POST" || strings.ToUpper(task.Method) == "PUT" || strings.ToUpper(task.Method) == "DELETE") && len(task.Body) == 0 {
-		http.Error(w, "No body for request", http.StatusBadRequest)
-		return
-	}
-
-	method := strings.ToUpper(task.Method)
-	allowedMethods := map[string]bool{"GET": true, "POST": true, "PUT": true, "DELETE": true}
-
-	if !allowedMethods[method] {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := c.BindJSON(&task); err != nil {
 		return
 	}
 
@@ -41,7 +25,9 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 
 	taskResponse := models.TaskRequest{TaskID: taskID, Task: task}
 	tasks[taskID] = taskResponse
-	go redirectionTask(taskResponse)
+	go executeTask(taskResponse)
 
-	json.NewEncoder(w).Encode(taskID)
+	c.JSON(http.StatusOK, gin.H{
+		"taskID": taskID,
+	})
 }
