@@ -1,22 +1,30 @@
 package task
 
 import (
-	"encoding/json"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
-func GetTaskStatus(w http.ResponseWriter, r *http.Request) {
-	taskIDStr := r.URL.Query().Get("taskID")
-	taskID, err := strconv.Atoi(taskIDStr)
+func GetTaskStatus(c *gin.Context) {
+	id := c.Param("id")
+	taskID, err := strconv.Atoi(id)
 	if err != nil {
-		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code": http.StatusBadRequest,
+		})
 		return
 	}
 
-	if val, ok := tasks[taskID]; ok {
-		json.NewEncoder(w).Encode(val.TaskStatus)
+	if _, ok := tasks[taskID]; ok {
+		c.JSON(http.StatusOK, gin.H{
+			"response": tasks[taskID],
+		})
+		return
 	} else {
-		http.Error(w, "non-existent task", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code": http.StatusBadRequest,
+		})
+		return
 	}
 }
