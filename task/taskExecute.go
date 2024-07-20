@@ -4,81 +4,29 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"req3rdPartyServices/models"
 	"strings"
 )
 
-func redirectionTask(task models.TaskRequest) {
-	switch strings.ToUpper(task.Task.Method) {
-	case "GET":
-		executeGetTask(task)
-	case "POST":
-		executePostTask(task)
-	case "PUT":
-		executePutTask(task)
-	case "DELETE":
-		executeDeleteTask(task)
-	}
-}
+var headers = make(map[string]string)
 
-func executeGetTask(task models.TaskRequest) {
-	resp, err := http.Get(task.Task.Url)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-	}(resp.Body)
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	executeTask(task, "GET", body)
-}
-
-func executePostTask(task models.TaskRequest) {
+func executeTask(task models.TaskRequest) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	executeTask(task, "POST", jsonTask)
-}
-
-func executePutTask(task models.TaskRequest) {
-	jsonTask, err := json.Marshal(task)
+	req, err := http.NewRequest(strings.ToUpper(task.Task.Method), task.Task.Url, bytes.NewBuffer(jsonTask))
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	executeTask(task, "PUT", jsonTask)
-}
-
-func executeDeleteTask(task models.TaskRequest) {
-	jsonTask, err := json.Marshal(task)
-	if err != nil {
-		log.Fatal(err)
-	}
-	executeTask(task, "DELETE", jsonTask)
-}
-
-func executeTask(task models.TaskRequest, method string, body []byte) {
-	req, err := http.NewRequest(method, task.Task.Url, bytes.NewBuffer(body))
-	if err != nil {
-		log.Println(err)
 	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
@@ -86,43 +34,24 @@ func executeTask(task models.TaskRequest, method string, body []byte) {
 		}
 	}()
 
-	headers := make(map[string]string)
 	for k, v := range resp.Header {
 		headers[k] = v[0]
 	}
 
-	var status string
-	switch resp.StatusCode {
-	case http.StatusOK:
-		status = "done"
-	case http.StatusAccepted:
-		status = "in process"
-	case http.StatusMethodNotAllowed:
-		status = "incorrect method"
-	case http.StatusInternalServerError:
-		status = "error"
-	default:
-		status = "new"
-	}
-
-	taskStatus := models.TaskStatus{
-		Id:             task.TaskID,
-		Status:         status,
+	taskStatus := models.TaskStatus {
+		Id: task.TaskID,
+		Status: resp.Status,
 		HttpStatusCode: fmt.Sprintf("%d", resp.StatusCode),
-		Headers:        headers,
-	}
-
-	if body != nil {
-		taskStatus.Length = fmt.Sprintf("%d", len(body))
+		Headers: headers,
+		Length: fmt.Sprintf("%d", resp.ContentLength),
 	}
 
 	taskResp, ok := tasks[task.TaskID]
 	if !ok {
 		log.Println("Task not found in tasks map")
-		return
 	}
 
 	taskResp.TaskStatus = taskStatus
-
 	tasks[task.TaskID] = taskResp
+
 }
