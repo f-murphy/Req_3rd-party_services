@@ -7,13 +7,12 @@ import (
 	"req3rdPartyServices/service"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 )
 
 func main() {
  	db, err := sqlx.Connect("postgres", "postgres://postgres:qwerty@localhost:5436/postgres?sslmode=disable")
 	if err != nil {
-		log.Fatal("failed to initialize db: %s", err.Error())
+		log.Fatal("failed to initialize db: ", err.Error())
 	}
 
 	repos := repository.NewTaskRepository(db)

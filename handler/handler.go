@@ -1,13 +1,12 @@
 package handler
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"req3rdPartyServices/executor"
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/service"
 	"strconv"
-
-	"github.com/gin-gonic/gin"
 )
 
 type TaskHandler struct {
@@ -47,7 +46,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 func (h *TaskHandler) GetTask(c *gin.Context) {
 	id := c.Param("id")
 	taskID, err := strconv.Atoi(id)
-	
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code": http.StatusBadRequest,

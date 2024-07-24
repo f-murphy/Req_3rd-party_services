@@ -7,14 +7,7 @@ type Task struct {
 	Body    map[string]string
 }
 
-type TaskRequest struct {
-	TaskID     int
-	Task       Task
-	TaskStatus any
-}
-
 type TaskStatus struct {
-	Id             int
 	Status         string
 	HttpStatusCode string
 	Headers        string
@@ -22,12 +15,12 @@ type TaskStatus struct {
 }
 
 type TaskFromDB struct {
-	Id int
-	Method string
-	Url string
-	Headers string
-	Body string
-	Status string
+	Id             int
+	Method         string
+	Url            string
+	Headers        string
+	Body           string
+	Status         string
 	HttpStatusCode string
-	Length string
+	Length         string
 }
