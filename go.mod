@@ -4,7 +4,10 @@ go 1.22.4
 
 require github.com/gin-gonic/gin v1.10.0
 
-require golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+require (
+	github.com/sirupsen/logrus v1.9.3 // indirect
+	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+)
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect

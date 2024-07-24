@@ -10,7 +10,7 @@ type TaskService struct {
 }
 
 func NewTaskService(repo *repository.TaskRepository) *TaskService {
-	return &TaskService{repo:repo}
+	return &TaskService{repo: repo}
 }
 
 func (s *TaskService) CreateTask(task *models.Task, taskStatus *models.TaskStatus) error {
