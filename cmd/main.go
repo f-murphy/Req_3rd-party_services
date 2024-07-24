@@ -1,21 +1,26 @@
 package main
 
 import (
-	"fmt"
-	"github.com/gin-gonic/gin"
 	"log"
-	"req3rdPartyServices/task"
+	"req3rdPartyServices/handler"
+	"req3rdPartyServices/repository"
+	"req3rdPartyServices/service"
+	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
-	r := gin.Default()
-	fmt.Println("Listening on port 8080")
-
-	r.POST("/task", task.PostTask)
-	r.GET("/task/:id", task.GetTaskStatus)
-	
-	err := r.Run("localhost:8080")
+ 	db, err := sqlx.Connect("postgres", "postgres://postgres:qwerty@localhost:5436/postgres?sslmode=disable")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to initialize db: ", err.Error())
 	}
+
+	repos := repository.NewTaskRepository(db)
+	services := service.NewTaskService(repos)
+	handlers := handler.NewTaskHandler(services)
+
+	r := gin.Default()
+	r.POST("/task", handlers.CreateTask)
+	r.GET("/task/:id", handlers.GetTask)
+	r.Run(":8080")
 }
