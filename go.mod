@@ -1,13 +1,13 @@
 module req3rdPartyServices
 
-go 1.22.4
-
-require github.com/gin-gonic/gin v1.10.0
+go 1.18
 
 require (
-	github.com/sirupsen/logrus v1.9.3 // indirect
-	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
+	github.com/gin-gonic/gin v1.10.0
+	github.com/lib/pq v1.10.9
 )
+
+require golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
@@ -24,7 +24,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/lib/pq v1.10.9
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
