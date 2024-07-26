@@ -17,6 +17,10 @@ func (s *TaskService) CreateTask(task *models.Task, taskStatus *models.TaskStatu
 	return s.repo.CreateTask(task, taskStatus)
 }
 
+func (s *TaskService) GetAllTasks() ([]*models.TaskFromDB, error) {
+	return s.repo.GetAllTasks()
+}
+
 func (s *TaskService) GetTask(id int) (*models.TaskFromDB, error) {
 	return s.repo.GetTask(id)
 }

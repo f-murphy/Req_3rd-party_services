@@ -37,6 +37,18 @@ func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskSt
 	return err
 }
 
+func (r *TaskRepository) GetAllTasks() ([]*models.TaskFromDB, error) {
+	tasks := []*models.TaskFromDB{}
+
+	query := `
+		SELECT * FROM Tasks
+		INNER JOIN TaskStatus ON Tasks.id = TaskStatus.id
+	`
+
+	err := r.db.Select(&tasks, query)
+	return tasks, err
+}
+
 func (r *TaskRepository) GetTask(id int) (*models.TaskFromDB, error) {
 	task := &models.TaskFromDB{}
 	query := `
