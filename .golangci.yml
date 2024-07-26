@@ -1,0 +1,8 @@
+linters:
+  enable:
+    - bodyclose
+    - godox
+    - godot
+    - funlen
+    - dupword
+    - lll
