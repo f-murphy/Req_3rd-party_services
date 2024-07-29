@@ -3,8 +3,8 @@ package repository
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"req3rdPartyServices/models"
+	"github.com/jmoiron/sqlx"
 )
 
 type TaskRepository struct {
@@ -35,6 +35,18 @@ func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskSt
 	queryTaskStatus := `INSERT INTO TaskStatus (Status, HttpStatusCode, Length) VALUES ($1, $2, $3)`
 	_, err = r.db.Exec(queryTaskStatus, taskStatus.Status, taskStatus.HttpStatusCode, taskStatus.Length)
 	return err
+}
+
+func (r *TaskRepository) GetAllTasks() ([]*models.TaskFromDB, error) {
+	tasks := []*models.TaskFromDB{}
+
+	query := `
+		SELECT * FROM Tasks
+		INNER JOIN TaskStatus ON Tasks.id = TaskStatus.id
+	`
+
+	err := r.db.Select(&tasks, query)
+	return tasks, err
 }
 
 func (r *TaskRepository) GetTask(id int) (*models.TaskFromDB, error) {
