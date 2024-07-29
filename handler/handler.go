@@ -2,12 +2,12 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"req3rdPartyServices/executor"
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/service"
 	"strconv"
-	"github.com/sirupsen/logrus"
 )
 
 type TaskHandler struct {
@@ -44,7 +44,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		return
 	}
 
-	c.JSON(201, gin.H{"task": task, "taskStatus": taskStatus})
+	c.JSON(http.StatusOK, gin.H{"task": task, "taskStatus": taskStatus})
 }
 
 func (h *TaskHandler) GetAllTasks(c *gin.Context) {
@@ -54,7 +54,7 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, tasks)
+	c.JSON(http.StatusOK, tasks)
 }
 
 func (h *TaskHandler) GetTask(c *gin.Context) {
@@ -74,5 +74,5 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, task)
+	c.JSON(http.StatusOK, task)
 }
