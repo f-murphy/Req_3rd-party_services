@@ -3,8 +3,8 @@ package repository
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"req3rdPartyServices/models"
+	"github.com/jmoiron/sqlx"
 )
 
 type TaskRepository struct {
