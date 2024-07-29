@@ -3,6 +3,7 @@ package logger
 import (
 	"github.com/sirupsen/logrus"
 	"os"
+	"io"
 )
 
 func InitLogger() (*os.File, error) {
@@ -13,7 +14,8 @@ func InitLogger() (*os.File, error) {
 		return nil, err
 	}
 
-	logrus.SetOutput(logFile)
+	multiWriter := io.MultiWriter(os.Stdout, logFile)
+	logrus.SetOutput(multiWriter)
 
 	return logFile, err
 }
