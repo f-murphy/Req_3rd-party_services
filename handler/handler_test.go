@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"req3rdPartyServices/configs"
-	"req3rdPartyServices/logger"
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/repository"
 	"req3rdPartyServices/service"
@@ -23,11 +22,6 @@ var taskService *service.TaskService
 var taskHandler *TaskHandler
 
 func init() {
-	logFile, err := logger.InitLogger()
-	if err != nil {
-		logrus.WithError(err).Fatal()
-	}
-	defer logFile.Close()
 
 	if err := configs.InitConfig(); err != nil {
 		logrus.WithError(err).Fatal("error initializing configs")
@@ -55,25 +49,41 @@ func Test_CreateTask(t *testing.T) {
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	task := models.Task{
-		Method:  "GET",
-		Url:     "http://google.com",
-		Headers: map[string]string{},
-		Body:    map[string]string{},
+	tasks := []models.Task{
+		{
+			Method:  "GET",
+			Url:     "http://google.com",
+			Headers: map[string]string{},
+			Body:    map[string]string{},
+		},
+		{
+			Method:  "POST",
+			Url:     "https://feeds.skynews.com/feeds/rss/business.xml",
+			Headers: map[string]string{"Content-Type": "application/json"},
+			Body:    map[string]string{},
+		},
+		{
+			Method:  "GET",
+			Url:     "https://fesadfsadfeds.skynews.com/feeds/rss/business.xml",
+			Headers: map[string]string{},
+			Body:    map[string]string{"id": "2"},
+		},
 	}
 
-	jsonTask, err := json.Marshal(task)
-	if err != nil {
-		t.Errorf("error during marshal task")
-	}
+	for _, test := range tasks {
+		jsonTask, err := json.Marshal(test)
+		if err != nil {
+			t.Errorf("error during marshal task")
+		}
 
-	c.Request = httptest.NewRequest("POST", "/tasks", bytes.NewBuffer(jsonTask))
-	c.Request.Header.Set("Content-Type", "application/json")
+		c.Request = httptest.NewRequest("POST", "/tasks", bytes.NewBuffer(jsonTask))
+		c.Request.Header.Set("Content-Type", "application/json")
 
-	taskHandler.CreateTask(c)
+		taskHandler.CreateTask(c)
 
-	if w.Code != http.StatusOK {
-		t.Errorf("Bad status %d during test CreateTask", w.Code)
+		if w.Code != http.StatusOK {
+			t.Errorf("Bad status %d during test CreateTask", w.Code)
+		}
 	}
 }
 
@@ -91,7 +101,7 @@ func Test_GetAllTasks(t *testing.T) {
 	}
 }
 
-func Test_GetTask(t *testing.T) {
+func Test_GetTaskById(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
@@ -103,5 +113,20 @@ func Test_GetTask(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Bad status %d during test GetTask", w.Code)
+	}
+}
+
+func Test_GetTaskById_ParseError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	c.Request = httptest.NewRequest("GET", "/tasks/abc", nil)
+	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
+
+	taskHandler.GetTask(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Bad status %d during test GetTask with parse error", w.Code)
 	}
 }
