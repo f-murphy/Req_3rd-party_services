@@ -1,11 +1,12 @@
-FROM golang:1.22.4-alpine
+FROM golang:alpine
 
 RUN go version
 ENV GOPATH=/
 
 COPY ./ ./
+COPY ./configs /configs
 
 RUN go mod download
-RUN go build -o req_3rd-party_services ./cmd/main.go
+RUN go build -o Req_3rd-party_services ./cmd/main.go
 
-CMD ["./req_3rd-party_services"]
+CMD ["./Req_3rd-party_services"]
