@@ -1,17 +1,19 @@
 version: '3.8'
 services:
-  db:
-    restart: always
-    image: postgres
-    volumes:
-      - ./.database/postgres/data:/var/lib/postgresql/data
-    ports:
-      - 5436:5432
-
-  app:  
+  req_3rd-party_services:
     build: ./
-    command: ./req_3rd-party_services
+    command: ./Req_3rd-party_services
     ports:
       - 8080:8080
     depends_on:
       - db
+
+  db:
+    restart: always
+    image: postgres:latest
+    volumes:
+      - ./.database/postgres/data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=qwerty
+    ports:
+      - 5436:5432
