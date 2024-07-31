@@ -3,130 +3,170 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"req3rdPartyServices/models"
+	mock_service "req3rdPartyServices/service/mocks"
 	"testing"
 
-	"req3rdPartyServices/configs"
-	"req3rdPartyServices/models"
-	"req3rdPartyServices/repository"
-	"req3rdPartyServices/service"
-
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 )
 
-var taskService *service.TaskService
-var taskHandler *TaskHandler
+func TestTaskHandler_CreateTask(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-func init() {
+	mockService := mock_service.NewMockTaskServiceInterface(ctrl)
+	handler := NewTaskHandler(mockService)
 
-	if err := configs.InitConfig(); err != nil {
-		logrus.WithError(err).Fatal("error initializing configs")
+	task := &models.Task{
+		Method: "GET",
+		Url:    "https://feeds.skynews.com/feeds/rss/business.xml",
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+		Body: map[string]string{
+			"key": "value",
+		},
 	}
 
-	db, err := repository.NewPostgresDB(repository.Config{
-		Host:     viper.GetString("db.host"),
-		Port:     viper.GetString("db.port"),
-		Username: viper.GetString("db.username"),
-		DBName:   viper.GetString("db.dbname"),
-		SSLMode:  viper.GetString("db.sslmode"),
-		Password: viper.GetString("db.password"),
-	})
-	if err != nil {
-		logrus.WithError(err).Fatal("failed to initialize db")
+	taskStatus := &models.TaskStatus{
+		Status:         "200 OK",
+		HttpStatusCode: "200",
+		Length:         "13393",
 	}
 
-	repos := repository.NewTaskRepository(db)
-	taskService = service.NewTaskService(repos)
-	taskHandler = NewTaskHandler(taskService)
-}
+	mockService.EXPECT().CreateTask(task, taskStatus).Return(1, nil)
 
-func Test_CreateTask(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	tasks := []models.Task{
+	jsonBytes, err := json.Marshal(task)
+	assert.NoError(t, err)
+
+	c.Request, err = http.NewRequest("POST", "/task", bytes.NewBuffer(jsonBytes))
+	assert.NoError(t, err)
+
+	handler.CreateTask(c)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, fmt.Sprintf(`{"task id":%d}`, 1), w.Body.String())
+}
+
+func TestTaskHandler_GetAllTasks(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := mock_service.NewMockTaskServiceInterface(ctrl)
+	handler := NewTaskHandler(mockService)
+
+	tasks := []*models.TaskFromDB{
 		{
-			Method:  "GET",
-			Url:     "http://google.com",
-			Headers: map[string]string{},
-			Body:    map[string]string{},
+			Id:             1,
+			Method:         "GET",
+			Url:            "https://feeds.skynews.com/feeds/rss/business.xml",
+			Headers:        "{\"asd\":\"asd\"}",
+			Body:           "{\"asd\":\"asd\"}",
+			Status:         "200 OK",
+			HttpStatusCode: "200",
+			Length:         "13393",
 		},
 		{
-			Method:  "POST",
-			Url:     "https://feeds.skynews.com/feeds/rss/business.xml",
-			Headers: map[string]string{"Content-Type": "application/json"},
-			Body:    map[string]string{},
-		},
-		{
-			Method:  "GET",
-			Url:     "https://fesadfsadfeds.skynews.com/feeds/rss/business.xml",
-			Headers: map[string]string{},
-			Body:    map[string]string{"id": "2"},
+			Id:             2,
+			Method:         "GET",
+			Url:            "https://google.com",
+			Headers:        "{\"asd\":\"asd\"}",
+			Body:           "{\"asd\":\"asd\"}",
+			Status:         "400 Bad Request",
+			HttpStatusCode: "400",
+			Length:         "1555",
 		},
 	}
 
-	for _, test := range tasks {
-		jsonTask, err := json.Marshal(test)
-		if err != nil {
-			t.Errorf("error during marshal task")
+	mockService.EXPECT().GetAllTasks().Return(tasks, nil)
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	c.Request, _ = http.NewRequest("GET", "/tasks", nil)
+
+	handler.GetAllTasks(c)
+	var expectedTasks []map[string]interface{}
+	for _, task := range tasks {
+		expectedTask := map[string]interface{}{
+			"Id":             task.Id,
+			"Method":         task.Method,
+			"Url":            task.Url,
+			"Headers":        task.Headers,
+			"Body":           task.Body,
+			"Status":         task.Status,
+			"HttpStatusCode": task.HttpStatusCode,
+			"Length":         task.Length,
 		}
-
-		c.Request = httptest.NewRequest("POST", "/tasks", bytes.NewBuffer(jsonTask))
-		c.Request.Header.Set("Content-Type", "application/json")
-
-		taskHandler.CreateTask(c)
-
-		if w.Code != http.StatusOK {
-			t.Errorf("Bad status %d during test CreateTask", w.Code)
-		}
+		expectedTasks = append(expectedTasks, expectedTask)
 	}
+
+	jsonExpectedTasks, err := json.Marshal(expectedTasks)
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, string(jsonExpectedTasks), w.Body.String())
 }
 
-func Test_GetAllTasks(t *testing.T) {
+func TestTaskHandler_GetTaskById(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := mock_service.NewMockTaskServiceInterface(ctrl)
+	handler := NewTaskHandler(mockService)
+
+	task := &models.TaskFromDB{
+		Id:             1,
+		Method:         "GET",
+		Url:            "https://feeds.skynews.com/feeds/rss/business.xml",
+		Headers:        "{\"asd\":\"asd\"}",
+		Body:           "{\"asd\":\"asd\"}",
+		Status:         "200 OK",
+		HttpStatusCode: "200",
+		Length:         "13393",
+	}
+
+	mockService.EXPECT().GetTaskById(1).Return(task, nil)
+
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	c.Request = httptest.NewRequest("GET", "/tasks", nil)
-
-	taskHandler.GetAllTasks(c)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("Bad status %d during test GetAllTasks", w.Code)
+	c.Params = gin.Params{
+		{
+			Key:   "id",
+			Value: "1",
+		},
 	}
-}
 
-func Test_GetTaskById(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
+	c.Request, _ = http.NewRequest("GET", "/task/:id", nil)
 
-	c.Request = httptest.NewRequest("GET", "/tasks/1", nil)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "1"}}
+	handler.GetTask(c)
 
-	taskHandler.GetTask(c)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("Bad status %d during test GetTask", w.Code)
+	expectedTask := map[string]interface{}{
+		"Id":             task.Id,
+		"Method":         task.Method,
+		"Url":            task.Url,
+		"Headers":        task.Headers,
+		"Body":           task.Body,
+		"Status":         task.Status,
+		"HttpStatusCode": task.HttpStatusCode,
+		"Length":         task.Length,
 	}
-}
 
-func Test_GetTaskById_ParseError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
+	jsonExpectedTask, err := json.Marshal(expectedTask)
+	assert.NoError(t, err)
 
-	c.Request = httptest.NewRequest("GET", "/tasks/abc", nil)
-	c.Params = gin.Params{gin.Param{Key: "id", Value: "abc"}}
-
-	taskHandler.GetTask(c)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Bad status %d during test GetTask with parse error", w.Code)
-	}
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.JSONEq(t, string(jsonExpectedTask), w.Body.String())
 }

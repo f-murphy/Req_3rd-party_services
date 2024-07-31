@@ -5,8 +5,10 @@ import (
 	"req3rdPartyServices/repository"
 )
 
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
+
 type TaskServiceInterface interface {
-	CreateTask(task *models.Task, taskStatus *models.TaskStatus) error
+	CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error)
 	GetAllTasks() ([]*models.TaskFromDB, error)
 	GetTaskById(id int) (*models.TaskFromDB, error)
 }
@@ -19,7 +21,7 @@ func NewTaskService(repo repository.TaskRepositoryInterface) *TaskService {
 	return &TaskService{repo: repo}
 }
 
-func (s *TaskService) CreateTask(task *models.Task, taskStatus *models.TaskStatus) error {
+func (s *TaskService) CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error) {
 	return s.repo.CreateTask(task, taskStatus)
 }
 

@@ -7,13 +7,6 @@ type Task struct {
 	Body    map[string]string
 }
 
-type TaskJSON struct {
-	Method  string
-	Url     string
-	Headers string
-	Body    string
-}
-
 type TaskStatus struct {
 	Status         string
 	HttpStatusCode string
