@@ -2,13 +2,15 @@ package repository
 
 import (
 	"encoding/json"
+	"fmt"
 	"req3rdPartyServices/models"
 
 	"github.com/jmoiron/sqlx"
 )
 
+//go:generate mockgen -source=repository.go -destination=mocks/mock.go
 type TaskRepositoryInterface interface {
-	CreateTask(task *models.Task, taskStatus *models.TaskStatus) error
+	CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error)
 	GetAllTasks() ([]*models.TaskFromDB, error)
 	GetTaskById(id int) (*models.TaskFromDB, error)
 }
@@ -21,25 +23,31 @@ func NewTaskRepository(db *sqlx.DB) *TaskRepository {
 	return &TaskRepository{db: db}
 }
 
-func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskStatus) error {
+func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error) {
 	jsonHeaders, err := json.Marshal(task.Headers)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	jsonBody, err := json.Marshal(task.Body)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	queryCreateTask := `INSERT INTO Tasks (Method, Url, Headers, Body) VALUES ($1, $2, $3, $4)`
-	_, err = r.db.Exec(queryCreateTask, task.Method, task.Url, string(jsonHeaders), string(jsonBody))
+	var id int
+	queryCreateTask := `INSERT INTO Tasks (Method, Url, Headers, Body) VALUES ($1, $2, $3, $4) RETURNING Id`
+	err = r.db.QueryRow(queryCreateTask, task.Method, task.Url, string(jsonHeaders), string(jsonBody)).Scan(&id)
 	if err != nil {
-		return err
+		return 0, err
 	}
+
+	fmt.Println("new id - ", id)
 
 	queryTaskStatus := `INSERT INTO TaskStatus (Status, HttpStatusCode, Length) VALUES ($1, $2, $3)`
 	_, err = r.db.Exec(queryTaskStatus, taskStatus.Status, taskStatus.HttpStatusCode, taskStatus.Length)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return id, err
 }
 
 func (r *TaskRepository) GetAllTasks() ([]*models.TaskFromDB, error) {

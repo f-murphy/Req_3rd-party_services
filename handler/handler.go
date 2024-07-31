@@ -10,12 +10,6 @@ import (
 	"strconv"
 )
 
-type TaskHandlerInterface interface {
-	CreateTask(c *gin.Context)
-	GetAllTasks(c *gin.Context)
-	GetTaskById(c *gin.Context)
-}
-
 type TaskHandler struct {
 	service service.TaskServiceInterface
 }
@@ -30,7 +24,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 	err := c.BindJSON(&task)
 	if err != nil {
 		logrus.WithError(err).Error("error binding JSON")
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -48,13 +42,13 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 
 	select {
 	case taskStatus := <-taskStatusChan:
-		err = h.service.CreateTask(&task, taskStatus)
+		id, err := h.service.CreateTask(&task, taskStatus)
 		if err != nil {
 			logrus.WithError(err).Error("error creating task in DB")
-			c.JSON(500, gin.H{"error creating task in DB": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error creating task in DB": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"task": task, "taskStatus": taskStatus})
+		c.JSON(http.StatusOK, gin.H{"task id": id})
 	case err := <-errChan:
 		logrus.WithError(err).Error("error executing task")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err})
