@@ -10,11 +10,17 @@ import (
 	"strconv"
 )
 
-type TaskHandler struct {
-	service *service.TaskService
+type TaskHandlerInterface interface {
+	CreateTask(c *gin.Context)
+	GetAllTasks(c *gin.Context)
+	GetTaskById(c *gin.Context)
 }
 
-func NewTaskHandler(services *service.TaskService) *TaskHandler {
+type TaskHandler struct {
+	service service.TaskServiceInterface
+}
+
+func NewTaskHandler(services service.TaskServiceInterface) *TaskHandler {
 	return &TaskHandler{service: services}
 }
 
@@ -28,23 +34,32 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		return
 	}
 
-	taskStatus, err := executor.ExecuteTask(task)
-	if err != nil {
+	taskStatusChan := make(chan *models.TaskStatus)
+	errChan := make(chan error)
+
+	go func() {
+		taskStatus, err := executor.ExecuteTask(&task)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		taskStatusChan <- taskStatus
+	}()
+
+	select {
+	case taskStatus := <-taskStatusChan:
+		err = h.service.CreateTask(&task, taskStatus)
+		if err != nil {
+			logrus.WithError(err).Error("error creating task in DB")
+			c.JSON(500, gin.H{"error creating task in DB": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"task": task, "taskStatus": taskStatus})
+	case err := <-errChan:
 		logrus.WithError(err).Error("error executing task")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error:": err,
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		return
 	}
-
-	err = h.service.CreateTask(&task, taskStatus)
-	if err != nil {
-		logrus.WithError(err).Error("error creating task in DB")
-		c.JSON(500, gin.H{"error creating task in DB": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"task": task, "taskStatus": taskStatus})
 }
 
 func (h *TaskHandler) GetAllTasks(c *gin.Context) {
@@ -68,7 +83,7 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 		})
 		return
 	}
-	task, err := h.service.GetTask(taskID)
+	task, err := h.service.GetTaskById(taskID)
 	if err != nil {
 		logrus.WithError(err).Error("error getting task")
 		c.JSON(404, gin.H{"error": err.Error()})

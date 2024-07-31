@@ -2,10 +2,16 @@ package repository
 
 import (
 	"encoding/json"
-	"fmt"
 	"req3rdPartyServices/models"
+
 	"github.com/jmoiron/sqlx"
 )
+
+type TaskRepositoryInterface interface {
+	CreateTask(task *models.Task, taskStatus *models.TaskStatus) error
+	GetAllTasks() ([]*models.TaskFromDB, error)
+	GetTaskById(id int) (*models.TaskFromDB, error)
+}
 
 type TaskRepository struct {
 	db *sqlx.DB
@@ -18,14 +24,13 @@ func NewTaskRepository(db *sqlx.DB) *TaskRepository {
 func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskStatus) error {
 	jsonHeaders, err := json.Marshal(task.Headers)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	jsonBody, err := json.Marshal(task.Body)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
-
 	queryCreateTask := `INSERT INTO Tasks (Method, Url, Headers, Body) VALUES ($1, $2, $3, $4)`
 	_, err = r.db.Exec(queryCreateTask, task.Method, task.Url, string(jsonHeaders), string(jsonBody))
 	if err != nil {
@@ -49,7 +54,7 @@ func (r *TaskRepository) GetAllTasks() ([]*models.TaskFromDB, error) {
 	return tasks, err
 }
 
-func (r *TaskRepository) GetTask(id int) (*models.TaskFromDB, error) {
+func (r *TaskRepository) GetTaskById(id int) (*models.TaskFromDB, error) {
 	task := &models.TaskFromDB{}
 	query := `
 		SELECT * FROM Tasks

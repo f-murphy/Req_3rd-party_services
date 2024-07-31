@@ -5,11 +5,17 @@ import (
 	"req3rdPartyServices/repository"
 )
 
-type TaskService struct {
-	repo *repository.TaskRepository
+type TaskServiceInterface interface {
+	CreateTask(task *models.Task, taskStatus *models.TaskStatus) error
+	GetAllTasks() ([]*models.TaskFromDB, error)
+	GetTaskById(id int) (*models.TaskFromDB, error)
 }
 
-func NewTaskService(repo *repository.TaskRepository) *TaskService {
+type TaskService struct {
+	repo repository.TaskRepositoryInterface
+}
+
+func NewTaskService(repo repository.TaskRepositoryInterface) *TaskService {
 	return &TaskService{repo: repo}
 }
 
@@ -21,6 +27,6 @@ func (s *TaskService) GetAllTasks() ([]*models.TaskFromDB, error) {
 	return s.repo.GetAllTasks()
 }
 
-func (s *TaskService) GetTask(id int) (*models.TaskFromDB, error) {
-	return s.repo.GetTask(id)
+func (s *TaskService) GetTaskById(id int) (*models.TaskFromDB, error) {
+	return s.repo.GetTaskById(id)
 }
