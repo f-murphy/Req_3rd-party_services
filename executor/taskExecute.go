@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ExecuteTask(task models.Task) (taskStatus *models.TaskStatus, err error) {
+func ExecuteTask(task *models.Task) (taskStatus *models.TaskStatus, err error) {
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		logrus.WithError(err).Error("error marshaling task")
@@ -43,5 +43,4 @@ func ExecuteTask(task models.Task) (taskStatus *models.TaskStatus, err error) {
 	}
 
 	return taskStatus, err
-
 }

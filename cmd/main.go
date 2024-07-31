@@ -3,7 +3,7 @@
 	import (
 		"req3rdPartyServices/configs"
 		"req3rdPartyServices/handler"
-		"req3rdPartyServices/logger"
+		"req3rdPartyServices/utils/logger"
 		"req3rdPartyServices/repository"
 		"req3rdPartyServices/service"
 
@@ -37,7 +37,7 @@
 		}
 
 		repos := repository.NewTaskRepository(db)
-		services := service.NewTaskService(repos)
+		services := service.TaskServiceInterface(repos)
 		handlers := handler.NewTaskHandler(services)
 
 		r := gin.Default()
