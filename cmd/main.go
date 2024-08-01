@@ -9,7 +9,7 @@
 
 		"github.com/gin-gonic/gin"
 		_ "github.com/lib/pq"
-		"github.com/sirupsen/logrus"
+		"github.com/sirupsen/logrus" 
 		"github.com/spf13/viper"
 	)
 

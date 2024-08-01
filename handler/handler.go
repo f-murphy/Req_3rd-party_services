@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
-	"req3rdPartyServices/executor"
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/service"
 	"strconv"
@@ -32,7 +31,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 	errChan := make(chan error)
 
 	go func() {
-		taskStatus, err := executor.ExecuteTask(&task)
+		taskStatus, err := service.ExecuteTask(&task)
 		if err != nil {
 			errChan <- err
 			return
