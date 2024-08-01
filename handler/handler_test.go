@@ -16,10 +16,10 @@ import (
 )
 
 func TestTaskHandler_CreateTask(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	controller := gomock.NewController(t)
+	defer controller.Finish()
 
-	mockService := mock_service.NewMockTaskServiceInterface(ctrl)
+	mockService := mock_service.NewMockTaskServiceInterface(controller)
 	handler := NewTaskHandler(mockService)
 
 	task := &models.Task{
@@ -58,10 +58,10 @@ func TestTaskHandler_CreateTask(t *testing.T) {
 }
 
 func TestTaskHandler_GetAllTasks(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	controller := gomock.NewController(t)
+	defer controller.Finish()
 
-	mockService := mock_service.NewMockTaskServiceInterface(ctrl)
+	mockService := mock_service.NewMockTaskServiceInterface(controller)
 	handler := NewTaskHandler(mockService)
 
 	tasks := []*models.TaskFromDB{
@@ -119,10 +119,10 @@ func TestTaskHandler_GetAllTasks(t *testing.T) {
 }
 
 func TestTaskHandler_GetTaskById(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	controller := gomock.NewController(t)
+	defer controller.Finish()
 
-	mockService := mock_service.NewMockTaskServiceInterface(ctrl)
+	mockService := mock_service.NewMockTaskServiceInterface(controller)
 	handler := NewTaskHandler(mockService)
 
 	task := &models.TaskFromDB{
