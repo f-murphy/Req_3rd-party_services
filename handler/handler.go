@@ -1,12 +1,13 @@
 package handler
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/service"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type TaskHandler struct {
@@ -30,17 +31,20 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 	taskStatusChan := make(chan *models.TaskStatus)
 	errChan := make(chan error)
 
-	go func() {
-		taskStatus, err := service.ExecuteTask(&task)
+	go func(task *models.Task, taskStatusChan chan *models.TaskStatus, errChan chan error) {
+		taskStatus, err := service.ExecuteTask(task)
 		if err != nil {
 			errChan <- err
 			return
 		}
 		taskStatusChan <- taskStatus
-	}()
+	}(&task, taskStatusChan, errChan)
 
 	select {
-	case taskStatus := <-taskStatusChan:
+	case taskStatus, ok := <-taskStatusChan:
+		if !ok {
+			return
+		}
 		id, err := h.service.CreateTask(&task, taskStatus)
 		if err != nil {
 			logrus.WithError(err).Error("error creating task in DB")
@@ -48,9 +52,12 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"task id": id})
-	case err := <-errChan:
+	case err, ok := <-errChan:
+		if !ok {
+			return
+		}
 		logrus.WithError(err).Error("error executing task")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		c.JSON(http.StatusBadRequest, gin.H{"error:": err})
 		return
 	}
 }

@@ -2,8 +2,8 @@ package logger
 
 import (
 	"github.com/sirupsen/logrus"
-	"os"
 	"io"
+	"os"
 )
 
 func InitLogger() (*os.File, error) {
