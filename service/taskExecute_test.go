@@ -8,21 +8,21 @@ import (
 
 func TestExecuteTask(t *testing.T) {
 	tests := []struct {
-		name string
-		task *models.Task
+		name       string
+		task       *models.Task
 		wantStatus *models.TaskStatus
-		wantErr bool
-	} {
+		wantErr    bool
+	}{
 		{
 			name: "success",
 			task: &models.Task{
 				Method: "GET",
-				Url: "",
+				Url:    "",
 			},
 			wantStatus: &models.TaskStatus{
-				Status: "200 OK",
+				Status:         "200 OK",
 				HttpStatusCode: "200",
-				Length: "",
+				Length:         "",
 			},
 			wantErr: false,
 		},
@@ -30,12 +30,12 @@ func TestExecuteTask(t *testing.T) {
 			name: "success",
 			task: &models.Task{
 				Method: "GET",
-				Url: "",
+				Url:    "",
 			},
 			wantStatus: &models.TaskStatus{
-				Status: "200 OK",
+				Status:         "200 OK",
 				HttpStatusCode: "200",
-				Length: "",
+				Length:         "",
 			},
 			wantErr: false,
 		},
@@ -43,12 +43,12 @@ func TestExecuteTask(t *testing.T) {
 			name: "success",
 			task: &models.Task{
 				Method: "GET",
-				Url: "",
+				Url:    "",
 			},
 			wantStatus: &models.TaskStatus{
-				Status: "200 OK",
+				Status:         "200 OK",
 				HttpStatusCode: "200",
-				Length: "",
+				Length:         "",
 			},
 			wantErr: false,
 		},

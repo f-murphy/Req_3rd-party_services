@@ -4,10 +4,10 @@ import "testing"
 
 func TestNewPostgresDB(t *testing.T) {
 	tests := []struct {
-		name string
-		cfg Config
+		name    string
+		cfg     Config
 		wantErr bool
-	} {
+	}{
 		{
 			name: "success",
 			cfg: Config{

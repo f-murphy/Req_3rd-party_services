@@ -2,13 +2,11 @@ package repository
 
 import (
 	"encoding/json"
-	"fmt"
 	"req3rdPartyServices/models"
 
 	"github.com/jmoiron/sqlx"
 )
 
-//go:generate mockgen -source=repository.go -destination=mocks/mock.go
 type TaskRepositoryInterface interface {
 	CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error)
 	GetAllTasks() ([]*models.TaskFromDB, error)
@@ -39,8 +37,6 @@ func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskSt
 	if err != nil {
 		return 0, err
 	}
-
-	fmt.Println("new id - ", id)
 
 	queryTaskStatus := `INSERT INTO TaskStatus (Status, HttpStatusCode, Length) VALUES ($1, $2, $3)`
 	_, err = r.db.Exec(queryTaskStatus, taskStatus.Status, taskStatus.HttpStatusCode, taskStatus.Length)
