@@ -18,13 +18,11 @@ func main() {
 	if err != nil {
 		logrus.WithError(err).Fatal()
 	}
-	logrus.Info("logFile initialized successfully")
 	defer logFile.Close()
 
 	if err := configs.InitConfig(); err != nil {
 		logrus.WithError(err).Fatal("error initializing configs")
 	}
-	logrus.Info("Configs initialized successfully")
 
 	db, err := repository.NewPostgresDB(repository.Config{
 		Host:     viper.GetString("db.host"),
@@ -37,7 +35,6 @@ func main() {
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to initialize db")
 	}
-	logrus.Info("Database connected successfully")
 
 	repos := repository.NewTaskRepository(db)
 	services := service.TaskServiceInterface(repos)
@@ -51,5 +48,4 @@ func main() {
 	if err := r.Run(":8080"); err != nil {
 		logrus.Fatal("failed to start server: ", err.Error())
 	}
-	logrus.Info("The server has been started successfully")
 }
