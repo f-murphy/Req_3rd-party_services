@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"req3rdPartyServices/models"
-	mock_service "req3rdPartyServices/service/mocks"
+	mock_service "req3rdPartyServices/utils/mocks"
 	"testing"
 
 	"github.com/gin-gonic/gin"
