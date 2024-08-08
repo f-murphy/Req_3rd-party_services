@@ -5,10 +5,13 @@ import (
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/service"
 	"strconv"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
+
+var mutex = &sync.Mutex{}
 
 type TaskHandler struct {
 	service service.TaskServiceInterface
@@ -32,12 +35,23 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 	errChan := make(chan error)
 
 	go func(task *models.Task, taskStatusChan chan *models.TaskStatus, errChan chan error) {
+		defer func() {
+			mutex.Lock()
+            close(taskStatusChan)
+            close(errChan)
+            mutex.Unlock()
+		}()
+
 		taskStatus, err := service.ExecuteTask(task)
 		if err != nil {
+			mutex.Lock()
 			errChan <- err
+			mutex.Unlock()
 			return
 		}
+		mutex.Lock()
 		taskStatusChan <- taskStatus
+		mutex.Unlock()
 	}(&task, taskStatusChan, errChan)
 
 	select {
