@@ -30,6 +30,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	logrus.Info("Task binding successfully")
 
 	taskStatusChan := make(chan *models.TaskStatus)
 	errChan := make(chan error)
@@ -65,6 +66,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error creating task in DB": err.Error()})
 			return
 		}
+		logrus.Info("The task has been successfully created in the database")
 		c.JSON(http.StatusOK, gin.H{"task id": id})
 	case err, ok := <-errChan:
 		if !ok {
@@ -83,6 +85,7 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
+	logrus.Info("All tasks successfully received")
 	c.JSON(http.StatusOK, tasks)
 }
 
@@ -103,5 +106,6 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 		c.JSON(404, gin.H{"error": err.Error()})
 		return
 	}
+	logrus.Info("Task by ID successfully received")
 	c.JSON(http.StatusOK, task)
 }
