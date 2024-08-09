@@ -5,6 +5,8 @@ type Task struct {
 	Url     string
 	Headers map[string]string
 	Body    map[string]string
+	HeadersJSON string
+	BodyJSON    string
 }
 
 type TaskStatus struct {
