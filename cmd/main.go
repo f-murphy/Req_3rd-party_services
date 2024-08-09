@@ -6,6 +6,7 @@ import (
 	"req3rdPartyServices/repository"
 	"req3rdPartyServices/service"
 	"req3rdPartyServices/utils/logger"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -39,7 +40,18 @@ func main() {
 	}
 	logrus.Info("Database connected successfully")
 
-	repos := repository.NewTaskRepository(db)
+	redisClient, err := repository.NewRedisDB(repository.RedisConfig{
+		Addr: viper.GetString("redis.addr"),
+		Password: viper.GetString("redis.password"),
+		DB: viper.GetInt("redis.DB"),
+	})
+	if err != nil {
+		logrus.WithError(err).Fatal("failed to initialize redis")
+	}
+
+	logrus.Info("Redis connected successfully")
+
+	repos := repository.NewTaskRepository(db, redisClient, 10*time.Minute)
 	services := service.TaskServiceInterface(repos)
 	handlers := handler.NewTaskHandler(services)
 

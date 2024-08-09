@@ -1,10 +1,11 @@
 package repository
 
 import (
-	"encoding/json"
 	"req3rdPartyServices/models"
+	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
 )
 
 type TaskRepositoryInterface interface {
@@ -14,26 +15,19 @@ type TaskRepositoryInterface interface {
 }
 
 type TaskRepository struct {
-	db *sqlx.DB
+	db       *sqlx.DB
+	redis    *redis.Client
+	cacheTTL time.Duration
 }
 
-func NewTaskRepository(db *sqlx.DB) *TaskRepository {
-	return &TaskRepository{db: db}
+func NewTaskRepository(db *sqlx.DB, redis *redis.Client, cacheTTL time.Duration) *TaskRepository {
+	return &TaskRepository{db: db, redis: redis, cacheTTL: cacheTTL}
 }
 
 func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error) {
-	jsonHeaders, err := json.Marshal(task.Headers)
-	if err != nil {
-		return 0, err
-	}
-
-	jsonBody, err := json.Marshal(task.Body)
-	if err != nil {
-		return 0, err
-	}
 	var id int
 	queryCreateTask := `INSERT INTO Tasks (Method, Url, Headers, Body) VALUES ($1, $2, $3, $4) RETURNING Id`
-	err = r.db.QueryRow(queryCreateTask, task.Method, task.Url, string(jsonHeaders), string(jsonBody)).Scan(&id)
+	err := r.db.QueryRow(queryCreateTask, task.Method, task.Url, task.HeadersJSON, task.BodyJSON).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -48,12 +42,10 @@ func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskSt
 
 func (r *TaskRepository) GetAllTasks() ([]*models.TaskFromDB, error) {
 	tasks := []*models.TaskFromDB{}
-
 	query := `
 		SELECT * FROM Tasks
 		INNER JOIN TaskStatus ON Tasks.id = TaskStatus.id
 	`
-
 	err := r.db.Select(&tasks, query)
 	return tasks, err
 }
