@@ -1,10 +1,14 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"req3rdPartyServices/models"
+	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
 )
 
 type TaskRepositoryInterface interface {
@@ -14,11 +18,13 @@ type TaskRepositoryInterface interface {
 }
 
 type TaskRepository struct {
-	db *sqlx.DB
+	db       *sqlx.DB
+	redis    *redis.Client
+	cacheTTL time.Duration
 }
 
-func NewTaskRepository(db *sqlx.DB) *TaskRepository {
-	return &TaskRepository{db: db}
+func NewTaskRepository(db *sqlx.DB, redis *redis.Client, cacheTTL time.Duration) *TaskRepository {
+	return &TaskRepository{db: db, redis: redis, cacheTTL: cacheTTL}
 }
 
 func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error) {
@@ -47,18 +53,55 @@ func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskSt
 }
 
 func (r *TaskRepository) GetAllTasks() ([]*models.TaskFromDB, error) {
+	cacheKey := "tasks_all"
+	ctx := context.Background()
+
+	cache, err := r.redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var tasks []*models.TaskFromDB
+		err = json.Unmarshal([]byte(cache), &tasks)
+		if err != nil {
+			return nil, err
+		}
+		return tasks, nil
+	}
+
 	tasks := []*models.TaskFromDB{}
 
 	query := `
 		SELECT * FROM Tasks
 		INNER JOIN TaskStatus ON Tasks.id = TaskStatus.id
 	`
+	err = r.db.Select(&tasks, query)
+	if err != nil {
+		return nil, err
+	}
+	jsonTasks, err := json.Marshal(tasks)
+	if err != nil {
+		return nil, err
+	}
+	err = r.redis.Set(ctx, cacheKey, jsonTasks, r.cacheTTL).Err()
+	if err != nil {
+		return nil, err
+	}
 
-	err := r.db.Select(&tasks, query)
 	return tasks, err
 }
 
 func (r *TaskRepository) GetTaskById(id int) (*models.TaskFromDB, error) {
+	cacheKey := fmt.Sprintf("task_%d", id)
+	ctx := context.Background()
+
+	cache, err := r.redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var task *models.TaskFromDB
+		err = json.Unmarshal([]byte(cache), &task)
+		if err != nil {
+			return nil, err
+		}
+		return task, nil
+	}
+
 	task := &models.TaskFromDB{}
 	query := `
 		SELECT * FROM Tasks
@@ -66,6 +109,19 @@ func (r *TaskRepository) GetTaskById(id int) (*models.TaskFromDB, error) {
 		WHERE tasks.id = $1
 	`
 
-	err := r.db.Get(task, query, id)
-	return task, err
+	err = r.db.Get(task, query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonTask, err := json.Marshal(task)
+	if err != nil {
+		return nil, err
+	}
+	err = r.redis.Set(ctx, cacheKey, jsonTask, r.cacheTTL).Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
 }
