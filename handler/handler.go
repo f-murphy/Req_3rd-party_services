@@ -5,13 +5,10 @@ import (
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/service"
 	"strconv"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
-
-var mutex = &sync.Mutex{}
 
 type TaskHandler struct {
 	service service.TaskServiceInterface
@@ -36,23 +33,15 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 	errChan := make(chan error)
 
 	go func(task *models.Task, taskStatusChan chan *models.TaskStatus, errChan chan error) {
-		defer func() {
-			mutex.Lock()
-            close(taskStatusChan)
-            close(errChan)
-            mutex.Unlock()
-		}()
+		defer close(taskStatusChan)
+		defer close(errChan)
 
 		taskStatus, err := service.ExecuteTask(task)
 		if err != nil {
-			mutex.Lock()
 			errChan <- err
-			mutex.Unlock()
 			return
 		}
-		mutex.Lock()
 		taskStatusChan <- taskStatus
-		mutex.Unlock()
 	}(&task, taskStatusChan, errChan)
 
 	select {
@@ -82,7 +71,7 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 	tasks, err := h.service.GetAllTasks()
 	if err != nil {
 		logrus.WithError(err).Error("error getting all tasks")
-		c.JSON(404, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 	logrus.Info("All tasks successfully received")
@@ -103,7 +92,7 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 	task, err := h.service.GetTaskById(taskID)
 	if err != nil {
 		logrus.WithError(err).Error("error getting task")
-		c.JSON(404, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 	logrus.Info("Task by ID successfully received")

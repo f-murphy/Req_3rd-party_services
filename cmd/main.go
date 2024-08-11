@@ -41,14 +41,13 @@ func main() {
 	logrus.Info("Database connected successfully")
 
 	redisClient, err := repository.NewRedisDB(repository.RedisConfig{
-		Addr: viper.GetString("redis.addr"),
+		Addr:     viper.GetString("redis.addr"),
 		Password: viper.GetString("redis.password"),
-		DB: viper.GetInt("redis.DB"),
+		DB:       viper.GetInt("redis.DB"),
 	})
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to initialize redis")
 	}
-
 	logrus.Info("Redis connected successfully")
 
 	repos := repository.NewTaskRepository(db, redisClient, 10*time.Minute)

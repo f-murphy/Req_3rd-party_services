@@ -97,7 +97,7 @@ func TestTaskHandler_GetAllTasks(t *testing.T) {
 
 	handler.GetAllTasks(c)
 	var expectedTasks []map[string]interface{}
-	
+
 	for _, task := range tasks {
 		expectedTask := map[string]interface{}{
 			"Id":             task.Id,
