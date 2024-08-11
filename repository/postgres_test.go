@@ -21,7 +21,7 @@ func TestNewPostgresDB(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "error open db",
+			name: "error open postgres",
 			cfg: Config{
 				Username: "postgres",
 				Host:     "localhost",
