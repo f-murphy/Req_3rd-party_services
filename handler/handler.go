@@ -89,6 +89,14 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 	c.JSON(http.StatusOK, tasks)
 }
 
+// @Summary Get task
+// @Description Get task by id
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param id path int true "Task ID"
+// @Success 200 {object} models.TaskFromDB
+// @Failure 400
 func (h *TaskHandler) GetTask(c *gin.Context) {
 	id := c.Param("id")
 	taskID, err := strconv.Atoi(id)

@@ -12,7 +12,19 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/swaggo/gin-swagger"
+	"github.com/swaggo/files"
 )
+
+// @title           Swagger API
+// @version         1.0
+// @description     This is a sample server celler server.
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath /
 
 func main() {
 	logFile, err := logger.InitLogger()
@@ -48,7 +60,6 @@ func main() {
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to initialize redis")
 	}
-
 	logrus.Info("Redis connected successfully")
 
 	repos := repository.NewTaskRepository(db, redisClient, 10*time.Minute)
@@ -59,6 +70,7 @@ func main() {
 	r.POST("/task", handlers.CreateTask)
 	r.GET("/tasks", handlers.GetAllTasks)
 	r.GET("/task/:id", handlers.GetTask)
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	if err := r.Run(":8080"); err != nil {
 		logrus.Fatal("failed to start server: ", err.Error())
