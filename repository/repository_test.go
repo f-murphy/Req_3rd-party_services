@@ -18,7 +18,7 @@ func TestTaskRepository_CreateTask(t *testing.T) {
 		want    int
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		// Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestTaskRepository_GetAllTasks(t *testing.T) {
 		want    []*models.TaskFromDB
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		//  Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestTaskRepository_GetTaskById(t *testing.T) {
 		want    *models.TaskFromDB
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		//  Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

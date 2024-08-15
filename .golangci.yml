@@ -6,3 +6,4 @@ linters:
     - funlen
     - dupword
     - lll
+    - govet

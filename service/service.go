@@ -23,7 +23,11 @@ type TaskService struct {
 	expiration time.Duration
 }
 
-func NewTaskService(repo repository.TaskRepositoryInterface, redis *redis.Client, expiration time.Duration) *TaskService {
+func NewTaskService(
+	repo repository.TaskRepositoryInterface,
+	redis *redis.Client,
+	expiration time.Duration,
+) *TaskService {
 	return &TaskService{repo: repo, redis: redis, expiration: expiration}
 }
 
