@@ -5,13 +5,10 @@ import (
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/service"
 	"strconv"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
-
-var mutex = &sync.Mutex{}
 
 type TaskHandler struct {
 	service service.TaskServiceInterface
@@ -30,28 +27,21 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	logrus.Info("Task binding successfully")
 
 	taskStatusChan := make(chan *models.TaskStatus)
 	errChan := make(chan error)
 
 	go func(task *models.Task, taskStatusChan chan *models.TaskStatus, errChan chan error) {
-		defer func() {
-			mutex.Lock()
-            close(taskStatusChan)
-            close(errChan)
-            mutex.Unlock()
-		}()
+		defer close(taskStatusChan)
+		defer close(errChan)
 
 		taskStatus, err := service.ExecuteTask(task)
 		if err != nil {
-			mutex.Lock()
 			errChan <- err
-			mutex.Unlock()
 			return
 		}
-		mutex.Lock()
 		taskStatusChan <- taskStatus
-		mutex.Unlock()
 	}(&task, taskStatusChan, errChan)
 
 	select {
@@ -65,6 +55,7 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error creating task in DB": err.Error()})
 			return
 		}
+		logrus.Info("The task has been successfully created in the database")
 		c.JSON(http.StatusOK, gin.H{"task id": id})
 	case err, ok := <-errChan:
 		if !ok {
@@ -80,9 +71,10 @@ func (h *TaskHandler) GetAllTasks(c *gin.Context) {
 	tasks, err := h.service.GetAllTasks()
 	if err != nil {
 		logrus.WithError(err).Error("error getting all tasks")
-		c.JSON(404, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	logrus.Info("All tasks successfully received")
 	c.JSON(http.StatusOK, tasks)
 }
 
@@ -100,8 +92,9 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 	task, err := h.service.GetTaskById(taskID)
 	if err != nil {
 		logrus.WithError(err).Error("error getting task")
-		c.JSON(404, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	logrus.Info("Task by ID successfully received")
 	c.JSON(http.StatusOK, task)
 }

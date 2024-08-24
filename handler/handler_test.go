@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"req3rdPartyServices/models"
-	mock_service "req3rdPartyServices/service/mocks"
+	mock_service "req3rdPartyServices/utils/mocks"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -97,7 +97,7 @@ func TestTaskHandler_GetAllTasks(t *testing.T) {
 
 	handler.GetAllTasks(c)
 	var expectedTasks []map[string]interface{}
-	
+
 	for _, task := range tasks {
 		expectedTask := map[string]interface{}{
 			"Id":             task.Id,
