@@ -50,8 +50,8 @@ func main() {
 	}
 	logrus.Info("Redis connected successfully")
 
-	repos := repository.NewTaskRepository(db, redisClient, 10*time.Minute)
-	services := service.TaskServiceInterface(repos)
+	repos := repository.NewTaskRepository(db)
+	services := service.NewTaskService(repos, redisClient, 10*time.Minute)
 	handlers := handler.NewTaskHandler(services)
 
 	r := gin.Default()
