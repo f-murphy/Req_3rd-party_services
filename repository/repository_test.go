@@ -4,10 +4,8 @@ import (
 	"reflect"
 	"req3rdPartyServices/models"
 	"testing"
-	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/redis/go-redis/v9"
 )
 
 func TestTaskRepository_CreateTask(t *testing.T) {
@@ -15,13 +13,7 @@ func TestTaskRepository_CreateTask(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	redis := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "qwerty",
-		DB:       0,
-	})
-	defer redis.Close()
-	repo := NewTaskRepository(db, redis, 10*time.Second)
+	repo := NewTaskRepository(db)
 
 	type args struct {
 		task       *models.Task
@@ -99,13 +91,8 @@ func TestTaskRepository_GetTaskById(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	redis := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "qwerty",
-		DB:       0,
-	})
-	defer redis.Close()
-	repo := NewTaskRepository(db, redis, 10*time.Second)
+
+	repo := NewTaskRepository(db)
 
 	type args struct {
 		id int

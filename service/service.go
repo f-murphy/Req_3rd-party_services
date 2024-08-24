@@ -1,12 +1,15 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/repository"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/sirupsen/logrus"
 )
 
 //go:generate mockgen -source=service.go -destination=mocks/mock.go
@@ -49,9 +52,65 @@ func (s *TaskService) CreateTask(task *models.Task, taskStatus *models.TaskStatu
 }
 
 func (s *TaskService) GetAllTasks() ([]*models.TaskFromDB, error) {
-	return s.repo.GetAllTasks()
+	cacheKey := "tasks_all"
+	ctx := context.Background()
+
+	cache, err := s.redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var tasks []*models.TaskFromDB
+		err = json.Unmarshal([]byte(cache), &tasks)
+		if err != nil {
+			return nil, err
+		}
+		return tasks, nil
+	}
+
+	tasks, err := s.repo.GetAllTasks()
+	if err != nil {
+		return nil, err
+	}
+
+	jsonTasks, err := json.Marshal(tasks)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Set(ctx, cacheKey, jsonTasks, s.expiration).Err()
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("all tasks is cached")
+	return tasks, nil
 }
 
 func (s *TaskService) GetTaskById(id int) (*models.TaskFromDB, error) {
-	return s.repo.GetTaskById(id)
+	cacheKey := fmt.Sprintf("task_%d", id)
+	ctx := context.Background()
+
+	cache, err := s.redis.Get(ctx, cacheKey).Result()
+	if err == nil {
+		var task *models.TaskFromDB
+		err = json.Unmarshal([]byte(cache), &task)
+		if err != nil {
+			return nil, err
+		}
+		return task, nil
+	}
+
+	task, err := s.repo.GetTaskById(id)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonTask, err := json.Marshal(task)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.redis.Set(ctx, cacheKey, jsonTask, s.expiration).Err()
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("task_%d is cached", id)
+	return task, nil
 }
