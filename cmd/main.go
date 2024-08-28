@@ -1,6 +1,10 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
 	"req3rdPartyServices/configs"
 	"req3rdPartyServices/handler"
 	"req3rdPartyServices/metrics"
@@ -12,7 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 func main() {
@@ -23,18 +26,19 @@ func main() {
 	logrus.Info("logFile initialized successfully")
 	defer logFile.Close()
 
-	if err := configs.InitConfig(); err != nil {
+	cfg, err := configs.InitConfig()
+	if err != nil {
 		logrus.WithError(err).Fatal("error initializing configs")
 	}
 	logrus.Info("Configs initialized successfully")
 
 	db, err := repository.NewPostgresDB(repository.Config{
-		Host:     viper.GetString("db.host"),
-		Port:     viper.GetString("db.port"),
-		Username: viper.GetString("db.username"),
-		DBName:   viper.GetString("db.dbname"),
-		SSLMode:  viper.GetString("db.sslmode"),
-		Password: viper.GetString("db.password"),
+		Host:     cfg.DB.Host,
+		Port:     cfg.DB.Port,
+		Username: cfg.DB.Username,
+		DBName:   cfg.DB.DBName,
+		SSLMode:  cfg.DB.SSLMode,
+		Password: cfg.DB.Password,
 	})
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to initialize db")
@@ -42,9 +46,9 @@ func main() {
 	logrus.Info("Database connected successfully")
 
 	redisClient, err := repository.NewRedisDB(repository.RedisConfig{
-		Addr:     viper.GetString("redis.addr"),
-		Password: viper.GetString("redis.password"),
-		DB:       viper.GetInt("redis.DB"),
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
 	})
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to initialize redis")
@@ -59,8 +63,9 @@ func main() {
 		logrus.Info("Start metrics server")
 	}()
 
+	timeDuration := 10*time.Minute
 	repos := repository.NewTaskRepository(db)
-	services := service.NewTaskService(repos, redisClient, 10*time.Minute)
+	services := service.NewTaskService(repos, redisClient, timeDuration)
 	handlers := handler.NewTaskHandler(services)
 
 	r := gin.Default()
@@ -68,8 +73,26 @@ func main() {
 	r.GET("/tasks", handlers.GetAllTasks)
 	r.GET("/task/:id", handlers.GetTask)
 
-	if err := r.Run(":8080"); err != nil {
-		logrus.Fatal("failed to start server: ", err.Error())
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
 	}
-	logrus.Info("The server has been started successfully")
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logrus.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	logrus.Info("Shutdown server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		logrus.WithError(err).Error("failed to shut down server")
+	}
+	logrus.Info("Server shut down successfully")
 }

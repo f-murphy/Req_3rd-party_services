@@ -33,13 +33,7 @@ func TestTaskHandler_CreateTask(t *testing.T) {
 		},
 	}
 
-	taskStatus := &models.TaskStatus{
-		Status:         "200 OK",
-		HttpStatusCode: "200",
-		Length:         "13393",
-	}
-
-	mockService.EXPECT().CreateTask(task, taskStatus).Return(1, nil)
+	mockService.EXPECT().CreateTask(task).Return(1, nil)
 
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
