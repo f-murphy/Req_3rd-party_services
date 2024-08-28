@@ -25,3 +25,10 @@ services:
       - 6379:6379
     environment:
       - REDIS_PASSWORD=qwerty
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "19090:9090"
