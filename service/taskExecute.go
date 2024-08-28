@@ -7,12 +7,9 @@ import (
 	"req3rdPartyServices/models"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/sirupsen/logrus"
 )
-
-var mutex = &sync.Mutex{}
 
 func ExecuteTask(task *models.Task) (taskStatus *models.TaskStatus, err error) {
 	jsonTask, err := json.Marshal(task)
@@ -34,11 +31,9 @@ func ExecuteTask(task *models.Task) (taskStatus *models.TaskStatus, err error) {
 		return nil, err
 	}
 	defer func() {
-		mutex.Lock()
 		if err := resp.Body.Close(); err != nil {
 			logrus.WithError(err).Error("error closing response body")
 		}
-		mutex.Unlock()
 	}()
 
 	taskStatus = &models.TaskStatus{
