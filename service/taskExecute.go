@@ -4,14 +4,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"req3rdPartyServices/metrics"
 	"req3rdPartyServices/models"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
 func ExecuteTask(task *models.Task) (taskStatus *models.TaskStatus, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskExecutionDuration.Observe(time.Since(startTime).Seconds())
+	}()
+
 	jsonTask, err := json.Marshal(task)
 	if err != nil {
 		logrus.WithError(err).Error("error marshaling task")
@@ -42,5 +49,8 @@ func ExecuteTask(task *models.Task) (taskStatus *models.TaskStatus, err error) {
 		Length:         strconv.FormatInt(resp.ContentLength, 10),
 	}
 
+	if err != nil {
+		metrics.TaskExecutionErrorsTotal.WithLabelValues(err.Error()).Inc()
+	}
 	return taskStatus, err
 }

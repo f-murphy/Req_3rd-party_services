@@ -3,6 +3,7 @@ package main
 import (
 	"req3rdPartyServices/configs"
 	"req3rdPartyServices/handler"
+	"req3rdPartyServices/metrics"
 	"req3rdPartyServices/repository"
 	"req3rdPartyServices/service"
 	"req3rdPartyServices/utils/logger"
@@ -49,6 +50,14 @@ func main() {
 		logrus.WithError(err).Fatal("failed to initialize redis")
 	}
 	logrus.Info("Redis connected successfully")
+
+	go func() {
+		err := metrics.StartMetricsServer(":9090")
+		if err != nil {
+			logrus.WithError(err).Fatal("Failed to start metrics server")
+		}
+		logrus.Info("Start metrics server")
+	}()
 
 	repos := repository.NewTaskRepository(db)
 	services := service.NewTaskService(repos, redisClient, 10*time.Minute)
