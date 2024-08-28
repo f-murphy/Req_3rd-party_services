@@ -3,9 +3,12 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/repository"
+	utils "req3rdPartyServices/utils/executor"
+	worker "req3rdPartyServices/utils/worker"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -15,7 +18,7 @@ import (
 //go:generate mockgen -source=service.go -destination=mocks/mock.go
 
 type TaskServiceInterface interface {
-	CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error)
+	CreateTask(task *models.Task) (int, error)
 	GetAllTasks() ([]*models.TaskFromDB, error)
 	GetTaskById(id int) (*models.TaskFromDB, error)
 }
@@ -24,6 +27,7 @@ type TaskService struct {
 	repo       repository.TaskRepositoryInterface
 	redis      *redis.Client
 	expiration time.Duration
+	workers    []*worker.Worker
 }
 
 func NewTaskService(
@@ -31,24 +35,59 @@ func NewTaskService(
 	redis *redis.Client,
 	expiration time.Duration,
 ) *TaskService {
-	return &TaskService{repo: repo, redis: redis, expiration: expiration}
+	s := &TaskService{
+		repo:       repo,
+		redis:      redis,
+		expiration: expiration,
+	}
+	s.startWorkers()
+	return s
 }
 
-func (s *TaskService) CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error) {
-	jsonHeaders, err := json.Marshal(task.Headers)
-	if err != nil {
+func (s *TaskService) startWorkers() {
+	s.workers = make([]*worker.Worker, 10)
+	for i := range s.workers {
+		s.workers[i] = worker.NewWorker()
+		s.workers[i].Start()
+	}
+}
+
+func (s *TaskService) CreateTask(task *models.Task) (int, error) {
+	taskStatusChan := make(chan *models.TaskStatus)
+	errChan := make(chan error)
+	s.workers[0].AddTask(task)
+	go func(task *models.Task, taskStatusChan chan *models.TaskStatus, errChan chan error) {
+		defer close(taskStatusChan)
+		defer close(errChan)
+
+		taskStatus, err := utils.ExecuteTask(task)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		taskStatusChan <- taskStatus
+	}(task, taskStatusChan, errChan)
+
+	select {
+	case taskStatus, ok := <-taskStatusChan:
+		if !ok {
+			return 0, errors.New("task status channel closed")
+		}
+		id, err := s.repo.CreateTask(task)
+		if err != nil {
+			return 0, err
+		}
+		err = s.repo.CreateTaskStatus(id, taskStatus)
+		if err != nil {
+			return 0, err
+		}
+		return id, nil
+	case err, ok := <-errChan:
+		if !ok {
+			return 0, errors.New("error channel closed")
+		}
 		return 0, err
 	}
-
-	jsonBody, err := json.Marshal(task.Body)
-	if err != nil {
-		return 0, err
-	}
-
-	task.HeadersJSON = string(jsonHeaders)
-	task.BodyJSON = string(jsonBody)
-
-	return s.repo.CreateTask(task, taskStatus)
 }
 
 func (s *TaskService) GetAllTasks() ([]*models.TaskFromDB, error) {
@@ -75,6 +114,7 @@ func (s *TaskService) GetAllTasks() ([]*models.TaskFromDB, error) {
 		return nil, err
 	}
 
+	// caching all tasks
 	err = s.redis.Set(ctx, cacheKey, jsonTasks, s.expiration).Err()
 	if err != nil {
 		return nil, err
@@ -107,6 +147,7 @@ func (s *TaskService) GetTaskById(id int) (*models.TaskFromDB, error) {
 		return nil, err
 	}
 
+	// caching task by id
 	err = s.redis.Set(ctx, cacheKey, jsonTask, s.expiration).Err()
 	if err != nil {
 		return nil, err

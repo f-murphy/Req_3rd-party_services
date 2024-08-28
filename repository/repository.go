@@ -7,7 +7,8 @@ import (
 )
 
 type TaskRepositoryInterface interface {
-	CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error)
+	CreateTask(task *models.Task) (int, error)
+	CreateTaskStatus(taskID int, taskStatus *models.TaskStatus) error
 	GetAllTasks() ([]*models.TaskFromDB, error)
 	GetTaskById(id int) (*models.TaskFromDB, error)
 }
@@ -20,20 +21,20 @@ func NewTaskRepository(db *sqlx.DB) *TaskRepository {
 	return &TaskRepository{db: db}
 }
 
-func (r *TaskRepository) CreateTask(task *models.Task, taskStatus *models.TaskStatus) (int, error) {
+func (r *TaskRepository) CreateTask(task *models.Task) (int, error) {
 	var id int
 	queryCreateTask := `INSERT INTO Tasks (Method, Url, Headers, Body) VALUES ($1, $2, $3, $4) RETURNING Id`
 	err := r.db.QueryRow(queryCreateTask, task.Method, task.Url, task.HeadersJSON, task.BodyJSON).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
+	return id, nil
+}
 
-	queryTaskStatus := `INSERT INTO TaskStatus (Status, HttpStatusCode, Length) VALUES ($1, $2, $3)`
-	_, err = r.db.Exec(queryTaskStatus, taskStatus.Status, taskStatus.HttpStatusCode, taskStatus.Length)
-	if err != nil {
-		return 0, err
-	}
-	return id, err
+func (r *TaskRepository) CreateTaskStatus(taskID int, taskStatus *models.TaskStatus) error {
+	queryTaskStatus := `INSERT INTO TaskStatus (Id, Status, HttpStatusCode, Length) VALUES ($1, $2, $3, $4)`
+	_, err := r.db.Exec(queryTaskStatus, taskID, taskStatus.Status, taskStatus.HttpStatusCode, taskStatus.Length)
+	return err
 }
 
 func (r *TaskRepository) GetAllTasks() ([]*models.TaskFromDB, error) {

@@ -74,7 +74,7 @@ func TestTaskRepository_CreateTask(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.r.CreateTask(tt.args.task, tt.args.taskStatus)
+			got, err := tt.r.CreateTask(tt.args.task)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TaskRepository.CreateTask() error = %v, wantErr %v", err, tt.wantErr)
 				return

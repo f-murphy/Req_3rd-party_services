@@ -2,11 +2,9 @@ package handler
 
 import (
 	"net/http"
-	"req3rdPartyServices/metrics"
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/service"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -22,62 +20,19 @@ func NewTaskHandler(services service.TaskServiceInterface) *TaskHandler {
 
 func (h *TaskHandler) CreateTask(c *gin.Context) {
 	var task models.Task
-
 	err := c.BindJSON(&task)
 	if err != nil {
 		logrus.WithError(err).Error("error binding JSON")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	logrus.Info("Task binding successfully")
-
-	taskStatusChan := make(chan *models.TaskStatus)
-	errChan := make(chan error)
-
-	go func(task *models.Task, taskStatusChan chan *models.TaskStatus, errChan chan error) {
-		defer close(taskStatusChan)
-		defer close(errChan)
-
-		taskStatus, err := service.ExecuteTask(task)
-		if err != nil {
-			errChan <- err
-			return
-		}
-		taskStatusChan <- taskStatus
-	}(&task, taskStatusChan, errChan)
-
-	select {
-	case taskStatus, ok := <-taskStatusChan:
-		if !ok {
-			return
-		}
-		id, err := h.service.CreateTask(&task, taskStatus)
-		if err != nil {
-			logrus.WithError(err).Error("error creating task in DB")
-			c.JSON(http.StatusInternalServerError, gin.H{"error creating task in DB": err.Error()})
-			return
-		}
-		logrus.Info("The task has been successfully created in the database")
-		c.JSON(http.StatusOK, gin.H{"task id": id})
-	case err, ok := <-errChan:
-		if !ok {
-			return
-		}
-		logrus.WithError(err).Error("error executing task")
-		c.JSON(http.StatusBadRequest, gin.H{"error:": err})
+	id, err := h.service.CreateTask(&task)
+	if err != nil {
+		logrus.WithError(err).Error("error creating task")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	startTime := time.Now()
-	defer func() {
-		metrics.TaskCreateDuration.Observe(time.Since(startTime).Seconds())
-	}()
-
-	if err == nil {
-		metrics.TasksCreatedTotal.Inc()
-	} else {
-		metrics.TaskCreateErrorsTotal.WithLabelValues(err.Error()).Inc()
-	}
+	c.JSON(http.StatusOK, gin.H{"task id": id})
 }
 
 func (h *TaskHandler) GetAllTasks(c *gin.Context) {
