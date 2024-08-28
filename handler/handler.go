@@ -2,9 +2,11 @@ package handler
 
 import (
 	"net/http"
+	"req3rdPartyServices/metrics"
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/service"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -64,6 +66,17 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 		logrus.WithError(err).Error("error executing task")
 		c.JSON(http.StatusBadRequest, gin.H{"error:": err})
 		return
+	}
+
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskCreateDuration.Observe(time.Since(startTime).Seconds())
+	}()
+
+	if err == nil {
+		metrics.TasksCreatedTotal.Inc()
+	} else {
+		metrics.TaskCreateErrorsTotal.WithLabelValues(err.Error()).Inc()
 	}
 }
 
