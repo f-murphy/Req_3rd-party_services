@@ -1,44 +1,50 @@
-package utils
+package workerpool
 
 import (
-	"req3rdPartyServices/models"
-	utils "req3rdPartyServices/utils/executor"
 	"sync"
 )
 
-type Worker struct {
-	taskChan chan *models.Task
-	quitChan chan bool
-	wg       sync.WaitGroup
+type WorkerPool struct {
+	workers chan func()
+	queue   chan func()
+	wg      sync.WaitGroup
 }
 
-func NewWorker() *Worker {
-	return &Worker{
-		taskChan: make(chan *models.Task),
-		quitChan: make(chan bool),
+func NewWorkerPool(size int) *WorkerPool {
+	wp := &WorkerPool{
+		workers: make(chan func(), size),
+		queue:   make(chan func()),
 	}
+	wp.start()
+	wp.startWorkers()
+	return wp
 }
 
-func (w *Worker) Start() {
-	w.wg.Add(1)
+func (wp *WorkerPool) start() {
 	go func() {
-		defer w.wg.Done()
-		for {
-			select {
-			case task := <-w.taskChan:
-				utils.ExecuteTask(task)
-			case <-w.quitChan:
-				return
-			}
+		for task := range wp.queue {
+			wp.workers <- task
 		}
 	}()
 }
 
-func (w *Worker) Stop() {
-	close(w.quitChan)
-	w.wg.Wait()
+func (wp *WorkerPool) startWorkers() {
+	for i := 0; i < cap(wp.workers); i++ {
+		wp.wg.Add(1)
+		go func() {
+			for task := range wp.workers {
+				task()
+			}
+			wp.wg.Done()
+		}()
+	}
 }
 
-func (w *Worker) AddTask(task *models.Task) {
-	w.taskChan <- task
+func (wp *WorkerPool) Submit(task func()) {
+	wp.queue <- task
+}
+
+func (wp *WorkerPool) Close() {
+	close(wp.queue)
+	wp.wg.Wait()
 }

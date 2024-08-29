@@ -6,9 +6,7 @@ db:
     port: "5436"
     dbname: "postgres"
     sslmode: "disable"
-    password: "qwerty"
 
 redis:
     addr: "localhost:6379"
-    password: "qwerty"
     db: 0
