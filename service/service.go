@@ -8,7 +8,7 @@ import (
 	"req3rdPartyServices/models"
 	"req3rdPartyServices/repository"
 	utils "req3rdPartyServices/utils/executor"
-	worker "req3rdPartyServices/utils/worker"
+	workerpool "req3rdPartyServices/utils/worker"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -27,7 +27,7 @@ type TaskService struct {
 	repo       repository.TaskRepositoryInterface
 	redis      *redis.Client
 	expiration time.Duration
-	workers    []*worker.Worker
+	wp         *workerpool.WorkerPool
 }
 
 func NewTaskService(
@@ -35,28 +35,20 @@ func NewTaskService(
 	redis *redis.Client,
 	expiration time.Duration,
 ) *TaskService {
+	workerpool_size := workerpool.NewWorkerPool(10)
 	s := &TaskService{
 		repo:       repo,
 		redis:      redis,
 		expiration: expiration,
+		wp:         workerpool_size,
 	}
-	s.startWorkers()
 	return s
-}
-
-func (s *TaskService) startWorkers() {
-	s.workers = make([]*worker.Worker, 10)
-	for i := range s.workers {
-		s.workers[i] = worker.NewWorker()
-		s.workers[i].Start()
-	}
 }
 
 func (s *TaskService) CreateTask(task *models.Task) (int, error) {
 	taskStatusChan := make(chan *models.TaskStatus)
 	errChan := make(chan error)
-	s.workers[0].AddTask(task)
-	go func(task *models.Task, taskStatusChan chan *models.TaskStatus, errChan chan error) {
+	s.wp.Submit(func() {
 		defer close(taskStatusChan)
 		defer close(errChan)
 
@@ -66,7 +58,7 @@ func (s *TaskService) CreateTask(task *models.Task) (int, error) {
 			return
 		}
 		taskStatusChan <- taskStatus
-	}(task, taskStatusChan, errChan)
+	})
 
 	select {
 	case taskStatus, ok := <-taskStatusChan:

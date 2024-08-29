@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 )
@@ -21,10 +22,14 @@ import (
 func main() {
 	logFile, err := logger.InitLogger()
 	if err != nil {
-		logrus.WithError(err).Fatal()
+		logrus.WithError(err).Fatal("Error loading logrus")
 	}
 	logrus.Info("logFile initialized successfully")
 	defer logFile.Close()
+	err = godotenv.Load("../.env")
+	if err != nil {
+		logrus.WithError(err).Fatal("Error loading .env file")
+	}
 
 	cfg, err := configs.InitConfig()
 	if err != nil {
@@ -32,22 +37,24 @@ func main() {
 	}
 	logrus.Info("Configs initialized successfully")
 
+	dbPassword := os.Getenv("DB_PASSWORD")
 	db, err := repository.NewPostgresDB(repository.Config{
 		Host:     cfg.DB.Host,
 		Port:     cfg.DB.Port,
 		Username: cfg.DB.Username,
 		DBName:   cfg.DB.DBName,
 		SSLMode:  cfg.DB.SSLMode,
-		Password: cfg.DB.Password,
+		Password: dbPassword,
 	})
 	if err != nil {
 		logrus.WithError(err).Fatal("failed to initialize db")
 	}
 	logrus.Info("Database connected successfully")
 
+	redisPassword := os.Getenv("REDIS_PASSWORD")
 	redisClient, err := repository.NewRedisDB(repository.RedisConfig{
 		Addr:     cfg.Redis.Addr,
-		Password: cfg.Redis.Password,
+		Password: redisPassword,
 		DB:       cfg.Redis.DB,
 	})
 	if err != nil {
@@ -63,7 +70,7 @@ func main() {
 		logrus.Info("Start metrics server")
 	}()
 
-	timeDuration := 10*time.Minute
+	timeDuration := 10 * time.Minute
 	repos := repository.NewTaskRepository(db)
 	services := service.NewTaskService(repos, redisClient, timeDuration)
 	handlers := handler.NewTaskHandler(services)
